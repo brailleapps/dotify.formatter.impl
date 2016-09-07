@@ -346,6 +346,7 @@ public class TakenFromDP2Test extends AbstractFormatterEngineTest {
 	public void testBlockUnderlineWithChildBlock() throws LayoutEngineException, IOException, PagedMediaWriterConfigurationException {
 		testPEF("resource-files/dp2/block-underline-with-child-block-input.obfl",
 		        "resource-files/dp2/block-underline-with-child-block-expected.pef", false);
+	}
 	@Ignore // see https://github.com/joeha480/dotify/issues/195
 	@Test
 	public void testMarginRegionAndBorders() throws LayoutEngineException, IOException, PagedMediaWriterConfigurationException {

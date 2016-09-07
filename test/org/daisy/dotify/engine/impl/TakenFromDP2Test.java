@@ -306,7 +306,6 @@ public class TakenFromDP2Test extends AbstractFormatterEngineTest {
 		testPEF("resource-files/dp2/sheets-in-volume-max-input.obfl",
 		        "resource-files/dp2/sheets-in-volume-max-expected.pef", false);
 	}
-	@Ignore // implementation does not support different target volume size
 	@Test
 	public void testVolumeTemplateVariousSheetsInVolumeMax() throws LayoutEngineException, IOException, PagedMediaWriterConfigurationException {
 		testPEF("resource-files/dp2/volume-template-various-sheets-in-volume-max-input.obfl",

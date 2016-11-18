@@ -11,8 +11,12 @@
             <field>
                <marker-reference marker="foo" direction="forward" scope="page" start-offset="-1"/>
             </field>
-            <field/>
-            <field/>
+            <field>
+				<string value=""/>
+			</field>
+            <field>
+				<string value=""/>
+			</field>
          </footer>
       </default-template>
    </layout-master>

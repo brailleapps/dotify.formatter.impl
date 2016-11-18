@@ -57,6 +57,8 @@ class BlockSequence extends FormatterCoreImpl implements FormatterSequence {
 		return props;
 	}
 	
+	// TODO: can be removed
+	
 	/**
 	 * Gets the minimum number of rows that the specified block requires to begin 
 	 * rendering on a page.
@@ -65,6 +67,7 @@ class BlockSequence extends FormatterCoreImpl implements FormatterSequence {
 	 * @param refs
 	 * @return the minimum number of rows
 	 */
+	/*
 	public int getKeepHeight(Block block, BlockContext bc) {
 		return getKeepHeight(this.indexOf(block), bc);
 	}
@@ -85,5 +88,6 @@ class BlockSequence extends FormatterCoreImpl implements FormatterSequence {
 		}
 		return keepHeight;
 	}
+	*/
 
 }

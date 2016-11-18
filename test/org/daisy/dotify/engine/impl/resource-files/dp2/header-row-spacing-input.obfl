@@ -7,13 +7,17 @@
    <layout-master name="a" page-width="40" page-height="25" duplex="false" page-number-variable="page">
       <template use-when="(= (% $page 2) 1)">
          <header>
-            <field/>
+            <field>
+				<string value=""/>
+			</field>
          </header>
          <footer/>
       </template>
       <template use-when="(= (% $page 2) 0)">
          <header row-spacing="2.0">
-            <field/>
+            <field>
+				<string value=""/>
+			</field>
          </header>
          <footer/>
       </template>

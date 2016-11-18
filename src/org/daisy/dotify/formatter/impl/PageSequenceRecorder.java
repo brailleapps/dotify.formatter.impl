@@ -51,8 +51,8 @@ class PageSequenceRecorder {
 	 * @param g
 	 * @param rec
 	 */
-	AbstractBlockContentManager processBlock(Block g, BlockContext context) {
-		AbstractBlockContentManager ret = g.getBlockContentManager(context);
+	AbstractBlockContentManager processBlock(Block g, BlockContext context, UnwriteableAreaInfo uai) {
+		AbstractBlockContentManager ret = g.getBlockContentManager(context, uai);
 		if (g.getRenderingScenario()!=null) {
 			if (invalid!=null && g.getRenderingScenario()==invalid) {
 				//we're still in the same scenario

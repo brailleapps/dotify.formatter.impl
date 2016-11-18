@@ -11,8 +11,12 @@
             <field>
                <marker-reference marker="foo" direction="backward" scope="spread"/>
             </field>
-            <field/>
-            <field/>
+            <field>
+				<string value=""/>
+			</field>
+            <field>
+				<string value=""/>
+			</field>
          </footer>
       </default-template>
    </layout-master>

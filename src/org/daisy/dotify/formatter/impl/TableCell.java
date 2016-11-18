@@ -29,7 +29,7 @@ class TableCell extends FormatterCoreImpl {
 		return info;
 	}
 	
-	CellData render(FormatterContext context, DefaultContext c, CrossReferenceHandler crh, int flowWidth) {
+	CellData render(FormatterContext context, DefaultContext c, CrossReferenceHandler crh, UnwriteableAreaInfo uai, int flowWidth) {
 		List<RowImpl> rowData = new ArrayList<>();
 		List<Block> blocks = getBlocks(context, c, crh);
 		int minWidth = flowWidth;
@@ -37,8 +37,8 @@ class TableCell extends FormatterCoreImpl {
 		boolean isVolatile = false;
 		for (Block block : blocks) {
 			AbstractBlockContentManager bcm = block.getBlockContentManager(
-					new BlockContext(flowWidth, crh, c, context)
-					);
+					new BlockContext(flowWidth, crh, c, context),
+					uai);
 			isVolatile |= bcm.isVolatile();
 			forceCount += bcm.getForceBreakCount();
 			minWidth = Math.min(bcm.getMinimumAvailableWidth(), minWidth);

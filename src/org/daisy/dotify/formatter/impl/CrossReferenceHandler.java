@@ -14,7 +14,8 @@ class CrossReferenceHandler {
 	private static final String SHEETS_IN_DOCUMENT = "sheets-in-document";
 	private static final String PAGES_IN_VOLUME = "pages-in-volume-";
 	private static final String PAGES_IN_DOCUMENT = "pages-in-document";
-	private Set<String> pageIds;
+	private HashSet<String> pageIds;
+	private HashSet<String> pageIdsMark;
 	
 	CrossReferenceHandler() {
 		this.pageRefs = new LookupHandler<>();
@@ -131,8 +132,22 @@ class CrossReferenceHandler {
 		breakable.setDirty(value);
 	}
 	
-	void resetUniqueChecks() {
-		pageIds = new HashSet<>();
+	void markUniqueChecks() {
+		pageIdsMark = (HashSet<String>)pageIds.clone();
 	}
 
+	void resetUniqueChecks() {
+		if (pageIdsMark == null) {
+			throw new RuntimeException("mark has not been set");
+		} else if (pageIds.size() != pageIdsMark.size()) {
+			pageIds = (HashSet<String>)pageIdsMark.clone();
+		}
+	}
+
+	void rewindUniqueChecks() {
+		if (!pageIds.isEmpty()) {
+			pageIds = new HashSet<>();
+		}
+		pageIdsMark = null;
+	}
 }

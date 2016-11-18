@@ -12,8 +12,9 @@ class RowGroupBuilder {
 	private final LayoutMaster master;
 	private final BlockSequence seq;
 	private final BlockContext bc;
+	private final UnwriteableAreaInfo uai;
 
-	RowGroupBuilder(LayoutMaster master, BlockSequence seq, BlockContext blockContext) {
+	RowGroupBuilder(LayoutMaster master, BlockSequence seq, BlockContext blockContext, UnwriteableAreaInfo uai) {
 		this.rec = new PageSequenceRecorder();
 		this.seq = seq;
 		this.master = master;
@@ -21,6 +22,7 @@ class RowGroupBuilder {
 		//TODO: This assumes that all page templates have margin regions that are of the same width 
 		final int mw = getTotalMarginRegionWidth(); 
 		bc = new BlockContext(seq.getLayoutMaster().getFlowWidth() - mw, blockContext.getRefs(), blockContext.getContext(), blockContext.getFcontext());
+		this.uai = uai;
 	}
 	
 	private int getTotalMarginRegionWidth() {
@@ -47,7 +49,7 @@ class RowGroupBuilder {
 	List<RowGroupSequence> getResult() {
 		for (Block g : seq)  {
 			try {
-				AbstractBlockContentManager bcm = rec.processBlock(g, bc);
+				AbstractBlockContentManager bcm = rec.processBlock(g, bc, uai);
 
 				if (rec.isDataGroupsEmpty() || (g.getBreakBeforeType()==BreakBefore.PAGE && !rec.isDataEmpty()) || g.getVerticalPosition()!=null) {
 					rec.newRowGroupSequence(g.getVerticalPosition(), new RowImpl("", bcm.getLeftMarginParent(), bcm.getRightMarginParent()));

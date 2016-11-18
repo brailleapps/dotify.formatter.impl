@@ -23,12 +23,14 @@ import org.daisy.dotify.common.layout.Supplements;
 class PageSequenceBuilder2 {
 	private final FormatterContext context;
 	private final CrossReferenceHandler crh;
+	private final UnwriteableAreaInfo uai;
 	private final PageAreaContent staticAreaContent;
 	private final PageAreaProperties areaProps;
 
 	private int keepNextSheets;
 	private ContentCollectionImpl collection;
 	private BlockContext blockContext;
+	private final PageSequence target;
 	private final LayoutMaster master;
 	private int pageCount = 0;
 	private int pageNumberOffset;
@@ -36,16 +38,17 @@ class PageSequenceBuilder2 {
 	private final Iterator<RowGroupSequence> dataGroups;
 	
 	private SplitPointHandler<RowGroup> sph = new SplitPointHandler<>();
-	private SplitPoint<RowGroup> res = null;
-	private SplitPointData<RowGroup> spd;
 	private List<RowGroup> data = null;
 	private boolean force;
 
-	PageSequenceBuilder2(LayoutMaster master, int pageNumberOffset, CrossReferenceHandler crh, BlockSequence seq, FormatterContext context, DefaultContext rcontext) {
+	PageSequenceBuilder2(PageSequence target, LayoutMaster master, int pageNumberOffset, CrossReferenceHandler crh, UnwriteableAreaInfo uai,
+	                     BlockSequence seq, FormatterContext context, DefaultContext rcontext) {
+		this.target = target;
 		this.master = master;
 		this.pageNumberOffset = pageNumberOffset;
 		this.context = context;
 		this.crh = crh;
+		this.uai = uai;
 
 		this.collection = null;
 		this.areaProps = seq.getLayoutMaster().getPageArea();
@@ -55,14 +58,15 @@ class PageSequenceBuilder2 {
 		this.keepNextSheets = 0;
 		
 		this.blockContext = new BlockContext(seq.getLayoutMaster().getFlowWidth(), crh, rcontext, context);
-		this.staticAreaContent = new PageAreaContent(seq.getLayoutMaster().getPageAreaBuilder(), blockContext);
+		this.staticAreaContent = new PageAreaContent(seq.getLayoutMaster().getPageAreaBuilder(), blockContext, uai);
 		this.current = null;
-		this.dataGroups = new RowGroupBuilder(master, seq, blockContext).getResult().iterator();
+		this.dataGroups = new RowGroupBuilder(master, seq, blockContext, uai).getResult().iterator();
 	}
 
 	private PageImpl newPage() {
 		PageImpl buffer = current;
-		current = new PageImpl(master, context, pageCount+pageNumberOffset, staticAreaContent.getBefore(), staticAreaContent.getAfter());
+		current = new PageImpl(master, context, pageCount+pageNumberOffset, staticAreaContent.getBefore(), staticAreaContent.getAfter(), uai);
+		current.setSequenceParent(target);
 		pageCount ++;
 		if (keepNextSheets>0) {
 			currentPage().setAllowsVolumeBreak(false);
@@ -99,7 +103,7 @@ class PageSequenceBuilder2 {
 		return currentPage().spaceUsedOnPage(offs);
 	}
 
-	private void newRow(RowImpl row) {
+	private void newRow(RowImpl row) throws PageFullException {
 		if (spaceUsedOnPage(1) > currentPage().getFlowHeight()) {
 			throw new RuntimeException("Error in code.");
 			//newPage();
@@ -116,7 +120,10 @@ class PageSequenceBuilder2 {
 		return dataGroups.hasNext() || (data!=null && !data.isEmpty()) || current!=null;
 	}
 	
-	PageImpl nextPage() throws PaginatorException, RestartPaginationException {
+	PageImpl nextPage() throws PaginatorException,
+		                       RestartPaginationException, // pagination must be restarted in PageStructBuilder.paginateInner
+		                       RestartPaginationException2 // pagination must be restarted in PageStructBuilder.newSequence
+		{
 		while (dataGroups.hasNext() || (data!=null && !data.isEmpty())) {
 			if ((data==null || data.isEmpty()) && dataGroups.hasNext()) {
 				//pick up next group
@@ -134,7 +141,14 @@ class PageSequenceBuilder2 {
 					int pos = calculateVerticalSpace(rgs.getBlockPosition(), (int)Math.ceil(size));
 					for (int i = 0; i < pos; i++) {
 						RowImpl ri = rgs.getEmptyRow();
-						newRow(new RowImpl(ri.getChars(), ri.getLeftMargin(), ri.getRightMargin()));
+						try {
+							RowImpl r = new RowImpl(ri.getChars(), ri.getLeftMargin(), ri.getRightMargin());
+							r.block = ri.block;
+							r.positionInBlock = ri.positionInBlock;
+							newRow(r);
+						} catch (PageFullException e) {
+							throw new RuntimeException("A layout unit was too big for the page.", e);
+						}
 					}
 				} else {
 					PageImpl ret = newPage();
@@ -150,8 +164,8 @@ class PageSequenceBuilder2 {
 					addProperties(rg);
 				}
 				data = sl.getSecondPart();
-				spd = new SplitPointData<>(data, new CollectionData(blockContext));
-				res = sph.split(currentPage().getFlowHeight(), force, spd);
+				SplitPointData<RowGroup> spd = new SplitPointData<>(data, new CollectionData(blockContext));
+				SplitPoint<RowGroup> res = sph.split(currentPage().getFlowHeight(), force, spd);
 				if (res.getHead().size()==0 && force) {
 					if (firstUnitHasSupplements(spd) && hasPageAreaCollection()) {
 						reassignCollection();
@@ -176,7 +190,11 @@ class PageSequenceBuilder2 {
 								r.setRightMargin(r.getRightMargin().append(getMarginRegionValue(mr, r, true)));
 							}
 						}
-						currentPage().newRow(r);
+						try {
+							currentPage().newRow(r);
+						} catch (PageFullException e) {
+							throw new RestartPaginationException2();
+						}
 					}
 				}
 				Integer lastPriority = getLastPriority(head);
@@ -312,7 +330,7 @@ class PageSequenceBuilder2 {
 				if (ret==null) {
 					RowGroup.Builder b = new RowGroup.Builder(master.getRowSpacing());
 					for (Block g : collection.getBlocks(id)) {
-						AbstractBlockContentManager bcm = g.getBlockContentManager(c);
+						AbstractBlockContentManager bcm = g.getBlockContentManager(c, uai);
 						b.addAll(bcm.getCollapsiblePreContentRows());
 						b.addAll(bcm.getInnerPreContentRows());
 						for (RowImpl r : bcm) {

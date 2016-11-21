@@ -14,6 +14,6 @@ public class FlowInFooterTest extends AbstractFormatterEngineTest {
 	public void testFlowInFooter1() throws LayoutEngineException, IOException, PagedMediaWriterConfigurationException {
 		testPEF("resource-files/flow-in-footer-1-input.obfl",
 		        "resource-files/flow-in-footer-1-expected.pef",
-		        true);
+		        false);
 	}
 }

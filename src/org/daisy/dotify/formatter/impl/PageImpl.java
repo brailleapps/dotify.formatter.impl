@@ -33,7 +33,7 @@ import org.daisy.dotify.formatter.impl.UnwriteableAreaInfo.UnwriteableArea;
  * 
  * @author Joel Håkansson
  */
-class PageImpl implements Page {
+class PageImpl implements Page, Cloneable {
 	private static final Pattern trailingWs = Pattern.compile("\\s*\\z");
 	private static final Pattern softHyphen = Pattern.compile("\u00ad");
 	private PageSequence parent;
@@ -42,12 +42,12 @@ class PageImpl implements Page {
 	private final UnwriteableAreaInfo unwriteableAreaInfo;
 	private final List<RowImpl> before;
 	private final List<RowImpl> after;
-	private final ArrayList<RowImpl> bodyRows;
-	private final ArrayList<RowImpl> pageArea;
-	private List<RowImpl> pageRows;
-	private final ArrayList<Marker> markers;
-	private final ArrayList<String> anchors;
-	private final ArrayList<String> identifiers;
+	private ArrayList<RowImpl> bodyRows;
+	private ArrayList<RowImpl> pageArea;
+	private ArrayList<RowImpl> pageRows;
+	private ArrayList<Marker> markers;
+	private ArrayList<String> anchors;
+	private ArrayList<String> identifiers;
 	private final int pageIndex;
 	private int textFlowIntoHeaderHeight;
 	private int textFlowIntoFooterHeight;
@@ -289,7 +289,7 @@ class PageImpl implements Page {
 		return (int)Math.ceil(spaceNeeded()) + offs;
 	}
 	
-	private List<RowImpl> buildPageRows(TextBorderStyle border) throws PaginatorException, PageFullException {
+	private ArrayList<RowImpl> buildPageRows(TextBorderStyle border) throws PaginatorException, PageFullException {
 		ArrayList<RowImpl> ret = new ArrayList<>();
 		{
 			LayoutMaster lm = master;
@@ -298,7 +298,7 @@ class PageImpl implements Page {
 			BrailleTranslator filter = fcontext.getDefaultTranslator();
 			boolean hasTopArea = lm.getPageArea()!=null && lm.getPageArea().getAlignment()==PageAreaProperties.Alignment.TOP && !pageArea.isEmpty();
 			ListIterator<RowImpl> rows = bodyRows.listIterator();
-			ret.addAll(renderFields(lm, t.getHeader(), filter, true, !hasTopArea, true, rows));
+			ret.addAll(renderFields(lm, t.getHeader(), filter, true, !hasTopArea, rows));
 			if (hasTopArea) {
 				ret.addAll(before);
 				ret.addAll(pageArea);
@@ -320,11 +320,15 @@ class PageImpl implements Page {
 					ret.addAll(pageArea);
 					ret.addAll(after);
 				}
-				ret.addAll(renderFields(lm, t.getFooter(), filter, false, bottomAreaSize == 0, true, rows));
+				ret.addAll(renderFields(lm, t.getFooter(), filter, false, bottomAreaSize == 0, rows));
 			}
 			if (rows.hasNext()) {
-				// FIXME: we could throw this exception sooner already in some cases if we use the available info better
-				throw new PageFullException();
+				int remaining = 0;
+				while (rows.hasNext()) {
+					rows.next();
+					remaining++;
+				}
+				throw new PageFullException(flowHeight - remaining);
 			}
 		}
 		return ret;
@@ -512,7 +516,7 @@ class PageImpl implements Page {
 	
 	
 	private List<RowImpl> renderFields(LayoutMaster lm, List<FieldList> fields, BrailleTranslator translator, boolean headerOrFooter,
-	                                   boolean allowTextFlow, boolean forceTextFlow, ListIterator<RowImpl> bodyRows)
+	                                   boolean allowTextFlow, ListIterator<RowImpl> bodyRows)
 			throws PaginatorException, PageFullException {
 		List<RowImpl> ret = new ArrayList<>();
 		int width = lm.getFlowWidth();
@@ -568,18 +572,11 @@ class PageImpl implements Page {
 						chars = null;
 					}
 					if (chars == null || chars.length() + length > width) {
-						// Note: if forceTextFlow is false and PageFullException is thrown elsewhere,
-						// that code should update unwriteableAreaInfo
-						if (forceTextFlow) {
-							if (bodyRow.block == null) {
-								// FIXME: this could happen with borders e.g., need to handle properly
-								throw new RuntimeException();
-							} else {
-								unwriteableAreaInfo.setUnwriteableArea(bodyRow.block,
-								                                       bodyRow.positionInBlock,
-								                                       new UnwriteableArea(UnwriteableArea.Side.RIGHT, length));
-								throw new PageFullException();
-							}
+						if (bodyRow.block != null) {
+							unwriteableAreaInfo.setUnwriteableArea(bodyRow.block,
+							                                       bodyRow.positionInBlock,
+							                                       new UnwriteableArea(UnwriteableArea.Side.RIGHT, length));
+							throw new PageFullException(flowHeight);
 						}
 						sb.append(StringTools.fill(space, width - length));
 						bodyRows.previous();
@@ -975,4 +972,22 @@ class PageImpl implements Page {
 		this.volumeBreakAfterPriority = value;
 	}
 
+	public Object clone() {
+		PageImpl clone; {
+			try {
+				clone = (PageImpl)super.clone();
+			} catch (CloneNotSupportedException e) {
+				throw new InternalError("coding error");
+			}
+		}
+		clone.bodyRows = (ArrayList<RowImpl>)bodyRows.clone();
+		clone.pageArea = (ArrayList<RowImpl>)pageArea.clone();
+		clone.markers = (ArrayList<Marker>)markers.clone();
+		clone.anchors = (ArrayList<String>)anchors.clone();
+		clone.identifiers = (ArrayList<String>)identifiers.clone();
+		if (pageRows != null) {
+			clone.pageRows = (ArrayList<RowImpl>)pageRows.clone();
+		}
+		return clone;
+	}
 }

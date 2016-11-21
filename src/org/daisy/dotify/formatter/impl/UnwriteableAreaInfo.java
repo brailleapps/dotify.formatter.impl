@@ -97,39 +97,61 @@ public class UnwriteableAreaInfo {
 		}
 	}
 	
-	// Note: not using LookupHandlers because I have a slightly different use
-	// case: I need an empty map at the start of every pass and a copy of the
-	// map at the end of the previous pass
-	
-	private Map<Position,UnwriteableArea> prvMap = null;
-	
-	public UnwriteableArea getUnwriteableArea(Block block, int positionInBlock) {
-		if (prvMap == null) {
-			return null;
-		} else {
-			return prvMap.get(new Position(block, positionInBlock));
-		}
-	}
+	// Note: not using LookupHandler because I have a slightly different use case.
 	
 	private Map<Position,UnwriteableArea> map = new HashMap<>();
+	private Map<Position,UnwriteableArea> uncommitted = new HashMap<>();
+	private Map<Position,UnwriteableArea> beforeMark = new HashMap<>();
+	private boolean dirty = false;
+	
+	public UnwriteableArea getUnwriteableArea(Block block, int positionInBlock) {
+		return map.get(new Position(block, positionInBlock));
+	}
 	
 	public void setUnwriteableArea(Block block, int positionInBlock, UnwriteableArea area) {
 		if (block == null || area == null) {
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException("null");
 		}
-		map.put(new Position(block, positionInBlock), area);
+		Position pos = new Position(block, positionInBlock);
+		if (beforeMark.containsKey(pos) || uncommitted.put(pos, area) != null) {
+			throw new IllegalStateException();
+		}
+		if (!dirty && !area.equals(map.get(pos))) {
+			dirty = true;
+		}
 	}
 	
 	public boolean isDirty() {
-		if (prvMap == null) {
-			return !map.isEmpty();
-		} else {
-			return !map.equals(prvMap);
+		if (!dirty && uncommitted.size() < map.size()) {
+			dirty = true;
 		}
+		return dirty;
 	}
 	
 	public void commit() {
-		prvMap = map;
-		map = new HashMap<>();
+		map.clear();
+		map.putAll(uncommitted);
+		uncommitted.clear();
+		dirty = false;
+	}
+	
+	public void mark() {
+		if (!uncommitted.isEmpty()) {
+			throw new IllegalStateException("uncommitted values");
+		}
+		beforeMark.putAll(map);
+		map.clear();
+	}
+	
+	public void reset() {
+		uncommitted.clear();
+		dirty = false;
+	}
+	
+	public void rewind() {
+		uncommitted.clear();
+		dirty = false;
+		map.putAll(beforeMark);
+		beforeMark.clear();
 	}
 }

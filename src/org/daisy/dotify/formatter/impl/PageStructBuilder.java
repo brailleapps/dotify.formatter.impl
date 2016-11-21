@@ -121,6 +121,7 @@ class PageStructBuilder {
 							throw new RuntimeException("Coding error");
 						} else {
 							uai.commit();
+							uai.rewind();
 							crh.resetUniqueChecks();
 							continue restart;
 						}

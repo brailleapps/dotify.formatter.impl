@@ -27,19 +27,37 @@ class PageSequenceBuilder2 {
 	private final PageAreaContent staticAreaContent;
 	private final PageAreaProperties areaProps;
 
-	private int keepNextSheets;
 	private ContentCollectionImpl collection;
 	private BlockContext blockContext;
 	private final PageSequence target;
 	private final LayoutMaster master;
 	private int pageCount = 0;
-	private int pageNumberOffset;
-	private PageImpl current;
+	private final int pageNumberOffset;
 	private final Iterator<RowGroupSequence> dataGroups;
 	
 	private SplitPointHandler<RowGroup> sph = new SplitPointHandler<>();
 	private List<RowGroup> data = null;
 	private boolean force;
+	
+	private State state;
+	
+	private static class State implements Cloneable {
+		PageImpl current;
+		int keepNextSheets;
+		public Object clone() {
+			State clone; {
+				try {
+					clone = (State)super.clone();
+				} catch (CloneNotSupportedException e) {
+					throw new InternalError("coding error");
+				}
+			}
+			if (this.current != null) {
+				clone.current = (PageImpl)this.current.clone();
+			}
+			return clone;
+		}
+	}
 
 	PageSequenceBuilder2(PageSequence target, LayoutMaster master, int pageNumberOffset, CrossReferenceHandler crh, UnwriteableAreaInfo uai,
 	                     BlockSequence seq, FormatterContext context, DefaultContext rcontext) {
@@ -55,25 +73,27 @@ class PageSequenceBuilder2 {
 		if (this.areaProps!=null) {
 			this.collection = context.getCollections().get(areaProps.getCollectionId());
 		}
-		this.keepNextSheets = 0;
+		this.state = new State() {{
+			current = null;
+			keepNextSheets = 0;
+		}};
 		
 		this.blockContext = new BlockContext(seq.getLayoutMaster().getFlowWidth(), crh, rcontext, context);
 		this.staticAreaContent = new PageAreaContent(seq.getLayoutMaster().getPageAreaBuilder(), blockContext, uai);
-		this.current = null;
 		this.dataGroups = new RowGroupBuilder(master, seq, blockContext, uai).getResult().iterator();
 	}
 
 	private PageImpl newPage() {
-		PageImpl buffer = current;
-		current = new PageImpl(master, context, pageCount+pageNumberOffset, staticAreaContent.getBefore(), staticAreaContent.getAfter(), uai);
-		current.setSequenceParent(target);
+		PageImpl buffer = state.current;
+		state.current = new PageImpl(master, context, pageCount+pageNumberOffset, staticAreaContent.getBefore(), staticAreaContent.getAfter(), uai);
+		state.current.setSequenceParent(target);
 		pageCount ++;
-		if (keepNextSheets>0) {
+		if (state.keepNextSheets>0) {
 			currentPage().setAllowsVolumeBreak(false);
 		}
 		if (!master.duplex() || pageCount%2==0) {
-			if (keepNextSheets>0) {
-				keepNextSheets--;
+			if (state.keepNextSheets>0) {
+				state.keepNextSheets--;
 			}
 		}
 		return buffer;
@@ -84,14 +104,14 @@ class PageSequenceBuilder2 {
 	}
 
 	private void setKeepWithNextSheets(int value) {
-		keepNextSheets = Math.max(value, keepNextSheets);
-		if (keepNextSheets>0) {
+		state.keepNextSheets = Math.max(value, state.keepNextSheets);
+		if (state.keepNextSheets>0) {
 			currentPage().setAllowsVolumeBreak(false);
 		}
 	}
 	
 	private PageImpl currentPage() {
-		return current;
+		return state.current;
 	}
 
 	/**
@@ -116,8 +136,24 @@ class PageSequenceBuilder2 {
 		currentPage().addIdentifier(id);
 	}
 	
+	private State mark;
+	
+	private void mark() {
+		mark = (State)state.clone();
+		uai.commit();
+		uai.mark();
+	}
+	
+	private void reset() {
+		if (mark == null) {
+			throw new RuntimeException("mark has not been set");
+		}
+		state = (State)mark.clone();
+		uai.reset();
+	}
+	
 	boolean hasNext() {
-		return dataGroups.hasNext() || (data!=null && !data.isEmpty()) || current!=null;
+		return dataGroups.hasNext() || (data!=null && !data.isEmpty()) || state.current!=null;
 	}
 	
 	PageImpl nextPage() throws PaginatorException,
@@ -165,37 +201,53 @@ class PageSequenceBuilder2 {
 				}
 				data = sl.getSecondPart();
 				SplitPointData<RowGroup> spd = new SplitPointData<>(data, new CollectionData(blockContext));
-				SplitPoint<RowGroup> res = sph.split(currentPage().getFlowHeight(), force, spd);
-				if (res.getHead().size()==0 && force) {
-					if (firstUnitHasSupplements(spd) && hasPageAreaCollection()) {
-						reassignCollection();
-						throw new RestartPaginationException();
-					} else {
-						throw new RuntimeException("A layout unit was too big for the page.");
-					}
-				}
-				force = res.getHead().size()==0;
-				data = res.getTail();
-				List<RowGroup> head = res.getHead();
-				for (RowGroup rg : head) {
-					addProperties(rg);
-					for (RowImpl r : rg.getRows()) { 
-						if (r.shouldAdjustForMargin()) {
-							// clone the row as not to append the margins twice
-							r = RowImpl.withRow(r);
-							for (MarginRegion mr : currentPage().getPageTemplate().getLeftMarginRegion()) {
-								r.setLeftMargin(getMarginRegionValue(mr, r, false).append(r.getLeftMargin()));
-							}
-							for (MarginRegion mr : currentPage().getPageTemplate().getRightMarginRegion()) {
-								r.setRightMargin(r.getRightMargin().append(getMarginRegionValue(mr, r, true)));
-							}
-						}
-						try {
-							currentPage().newRow(r);
-						} catch (PageFullException e) {
-							throw new RestartPaginationException2();
+				int flowHeight = currentPage().getFlowHeight();
+				SplitPoint<RowGroup> res;
+				List<RowGroup> head;
+				mark();
+			  restart: while (true) {
+					res = sph.split(flowHeight, force, spd);
+					if (res.getHead().size()==0 && force) {
+						if (firstUnitHasSupplements(spd) && hasPageAreaCollection()) {
+							reassignCollection();
+							throw new RestartPaginationException();
+						} else {
+							throw new RuntimeException("A layout unit was too big for the page.");
 						}
 					}
+					force = res.getHead().size()==0;
+					data = res.getTail();
+					head = res.getHead();
+					for (RowGroup rg : head) {
+						addProperties(rg);
+						for (RowImpl r : rg.getRows()) { 
+							if (r.shouldAdjustForMargin()) {
+								// clone the row as not to append the margins twice
+								r = RowImpl.withRow(r);
+								for (MarginRegion mr : currentPage().getPageTemplate().getLeftMarginRegion()) {
+									r.setLeftMargin(getMarginRegionValue(mr, r, false).append(r.getLeftMargin()));
+								}
+								for (MarginRegion mr : currentPage().getPageTemplate().getRightMarginRegion()) {
+									r.setRightMargin(r.getRightMargin().append(getMarginRegionValue(mr, r, true)));
+								}
+							}
+							try {
+								currentPage().newRow(r);
+							} catch (PageFullException e) {
+								int effectiveFlowHeight = e.getEffectiveFlowHeight();
+								if (effectiveFlowHeight > flowHeight) {
+									throw new RuntimeException("coding error");
+								} else if (effectiveFlowHeight == flowHeight) {
+									throw new RestartPaginationException2();
+								} else {
+									flowHeight = effectiveFlowHeight;
+									reset();
+									continue restart;
+								}
+							}
+						}
+					}
+					break;
 				}
 				Integer lastPriority = getLastPriority(head);
 				if (!res.getDiscarded().isEmpty()) {
@@ -219,8 +271,8 @@ class PageSequenceBuilder2 {
 			}
 		}
 		//flush current page
-		PageImpl ret = current;
-		current = null;
+		PageImpl ret = state.current;
+		state.current = null;
 		return ret;
 	}
 	

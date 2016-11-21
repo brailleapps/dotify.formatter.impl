@@ -6,16 +6,22 @@
          <footer>
             <field/>
             <field>
-				<string value="   "/>
-				<current-page number-format="default"/>
+               <string value="   "/>
+               <current-page number-format="default"/>
             </field>
          </footer>
       </default-template>
    </layout-master>
    <sequence master="a">
       <block>
-		  ⠁⠁⠁ ⠁⠁⠁ ⠁⠁⠁ ⠁⠁⠁ ⠁⠁⠁ ⠁⠁⠁ ⠁⠁⠁ ⠁⠁⠁
-		  ⠁⠁⠁ ⠁⠁⠁ ⠁⠁⠁ ⠁⠁⠁ ⠁⠁⠁ ⠁⠁⠁ ⠁⠁⠁ ⠁⠁⠁
-	  </block>
+         ⠁⠁⠁ ⠁⠁⠁ ⠁⠁⠁ ⠁⠁⠁
+      </block>
+      <block border-bottom-style="solid">
+         ⠁⠁⠁ ⠁⠁⠁ ⠁⠁⠁ ⠁⠁⠁
+      </block>
+      <block>
+         ⠁⠁⠁ ⠁⠁⠁ ⠁⠁⠁ ⠁⠁⠁
+         ⠁⠁⠁ ⠁⠁⠁ ⠁⠁⠁ ⠁⠁⠁
+     </block>
    </sequence>
 </obfl>

@@ -9,13 +9,13 @@ import org.daisy.dotify.api.formatter.BlockPosition;
 import org.daisy.dotify.api.formatter.RenderingScenario;
 
 class PageSequenceRecorder {
-	private static final String baseline = "base";
-	private static final String scenario = "best";
+	private static final String base = "base";
+	private static final String best = "best";
 	
 	private PageSequenceRecorderData data;
 
 	private RenderingScenario current = null;
-	private RenderingScenario invalid = null;
+	private boolean invalid = false;
 	private double cost = 0;
 	private float height = 0;
 	private float minWidth = 0;
@@ -46,80 +46,52 @@ class PageSequenceRecorder {
 		return states.containsKey(id);
 	}
 	
-	/**
-	 * Process a new block for a scenario
-	 * @param g
-	 * @param rec
-	 */
-	AbstractBlockContentManager processBlock(Block g, BlockContext context, UnwriteableAreaInfo uai) {
-		AbstractBlockContentManager ret = g.getBlockContentManager(context, uai);
-		if (g.getRenderingScenario()!=null) {
-			if (invalid!=null && g.getRenderingScenario()==invalid) {
-				//we're still in the same scenario
-				return ret;
-			}
-			if (current==null) {
-				height = data.calcSize();
-				cost = Double.MAX_VALUE;
-				minWidth = ret.getMinimumAvailableWidth();
-				forceCount = 0;
-				clearState(scenario);
-				saveState(baseline);
-				current = g.getRenderingScenario();
-				invalid = null;
-			} else {
-				if (current!=g.getRenderingScenario()) {
-					if (invalid!=null) {
-						invalid = null;
-						if (hasState(scenario)) {
-							restoreState(scenario);
-						} else {
-							restoreState(baseline);
-						}
-					} else {
-						//TODO: measure, evaluate
-						float size = data.calcSize()-height;
-						double ncost = current.calculateCost(setParams(size, minWidth, forceCount));
-						if (ncost<cost) {
-							//if better, store
-							cost = ncost;
-							saveState(scenario);
-						}
-						restoreState(baseline);
-						minWidth = ret.getMinimumAvailableWidth();
-						forceCount = 0;
-					}
-					current = g.getRenderingScenario();
-				} // we're rendering the current scenario
-				forceCount += ret.getForceBreakCount();
-				minWidth = Math.min(minWidth, ret.getMinimumAvailableWidth());
-			}
+	void startScenario(RenderingScenario scenario) {
+		if (current == scenario) {
+			throw new IllegalStateException();
+		} else if (current == null) {
+			height = data.calcSize();
+			cost = Double.MAX_VALUE;
+			clearState(best);
+			saveState(base);
 		} else {
-			finishBlockProcessing();
-		}
-		return ret;
-	}
-	
-	private void finishBlockProcessing() {
-		if (current!=null) {
-			if (invalid!=null) {
-				invalid = null;
-				if (hasState(scenario)) {
-					restoreState(scenario);
-				} else {
-					throw new RuntimeException("Failed to render any scenario.");
-				}
-			} else {
-				//if not better
+			if (!invalid) {
+				//TODO: measure, evaluate
 				float size = data.calcSize()-height;
 				double ncost = current.calculateCost(setParams(size, minWidth, forceCount));
-				if (ncost>cost) {
-					restoreState(scenario);
+				if (ncost<cost) {
+					//if better, store
+					cost = ncost;
+					saveState(best);
 				}
 			}
-			current = null;
-			invalid = null;
+			restoreState(base);
 		}
+		forceCount = 0;
+		minWidth = Float.MAX_VALUE;
+		current = scenario;
+		invalid = false;
+	}
+
+	void endScenarios() {
+		if (current == null) {
+			throw new IllegalStateException();
+		}
+		if (invalid) {
+			if (hasState(best)) {
+				restoreState(best);
+			} else {
+				throw new RuntimeException("Failed to render any scenario.");
+			}
+		} else {
+			//if not better
+			float size = data.calcSize()-height;
+			double ncost = current.calculateCost(setParams(size, minWidth, forceCount));
+			if (ncost>cost) {
+				restoreState(best);
+			}
+		}
+		current = null;
 	}
 	
 	/**
@@ -130,10 +102,24 @@ class PageSequenceRecorder {
 	 * @throws RuntimeException if no scenario is active 
 	 */
 	void invalidateScenario(Exception e) {
-		if (current==null) {
-			throw new RuntimeException(e);
-		} else {
-			invalid = current;
+		if (current == null) {
+			throw new IllegalStateException();
+		}
+		invalid = true;
+	}
+	
+	/**
+	 * Process a new block for a scenario
+	 * @param g
+	 * @param rec
+	 */
+	void processBlock(AbstractBlockContentManager bcm) {
+		if (current != null) {
+			if (invalid) {
+				return;
+			}
+			forceCount += bcm.getForceBreakCount();
+			minWidth = Math.min(minWidth, bcm.getMinimumAvailableWidth());
 		}
 	}
 	
@@ -157,8 +143,10 @@ class PageSequenceRecorder {
 		data.addRowGroup(rg); 
 	}
 	
-	List<RowGroupSequence> processResult() {
-		finishBlockProcessing();
+	List<RowGroupSequence> getResult() {
+		if (current != null) {
+			throw new IllegalStateException();
+		}
 		return data.dataGroups;
 	}
 	

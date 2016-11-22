@@ -6,16 +6,15 @@ import java.util.List;
 import org.daisy.dotify.api.formatter.FormattingTypes.BreakBefore;
 import org.daisy.dotify.api.formatter.FormattingTypes.Keep;
 import org.daisy.dotify.api.formatter.MarginRegion;
+import org.daisy.dotify.api.formatter.RenderingScenario;
 
 class RowGroupBuilder {
-	private final PageSequenceRecorder rec;
 	private final LayoutMaster master;
 	private final BlockSequence seq;
 	private final BlockContext bc;
 	private final UnwriteableAreaInfo uai;
 
 	RowGroupBuilder(LayoutMaster master, BlockSequence seq, BlockContext blockContext, UnwriteableAreaInfo uai) {
-		this.rec = new PageSequenceRecorder();
 		this.seq = seq;
 		this.master = master;
 
@@ -47,10 +46,21 @@ class RowGroupBuilder {
 	}
 
 	List<RowGroupSequence> getResult() {
+		PageSequenceRecorder rec = new PageSequenceRecorder();
+		RenderingScenario currentScenario = null;
 		for (Block g : seq)  {
 			try {
-				AbstractBlockContentManager bcm = rec.processBlock(g, bc, uai);
-
+				RenderingScenario scenario = g.getRenderingScenario();
+				if (scenario != currentScenario) {
+					if (scenario == null) {
+						rec.endScenarios();
+					} else {
+						rec.startScenario(scenario);
+					}
+					currentScenario = scenario;
+				}
+				AbstractBlockContentManager bcm = g.getBlockContentManager(bc, uai);
+				rec.processBlock(bcm);
 				if (rec.isDataGroupsEmpty() || (g.getBreakBeforeType()==BreakBefore.PAGE && !rec.isDataEmpty()) || g.getVerticalPosition()!=null) {
 					rec.newRowGroupSequence(g.getVerticalPosition(), new RowImpl("", bcm.getLeftMarginParent(), bcm.getRightMarginParent()));
 					rec.setKeepWithNext(-1);
@@ -132,7 +142,10 @@ class RowGroupBuilder {
 				rec.invalidateScenario(e);
 			}
 		}
-		return rec.processResult();
+		if (currentScenario != null) {
+			rec.endScenarios();
+		}
+		return rec.getResult();
 	}
 
 }

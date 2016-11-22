@@ -120,10 +120,7 @@ class PageStructBuilder {
 						if (!uai.isDirty()) {
 							throw new RuntimeException("Coding error");
 						} else {
-							uai.commit();
-							uai.rewind();
-							crh.resetUniqueChecks();
-							continue restart;
+							break;
 						}
 					}
 				}
@@ -134,6 +131,12 @@ class PageStructBuilder {
 					}
 				}
 				ps.addPage(p);
+			}
+			if (uai.isDirty()) {
+				uai.commit();
+				uai.rewind();
+				crh.resetUniqueChecks();
+				continue restart;
 			}
 			struct.add(ps);
 			return ps;

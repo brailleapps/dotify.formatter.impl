@@ -80,7 +80,7 @@ class PageSequenceBuilder2 {
 		
 		this.blockContext = new BlockContext(seq.getLayoutMaster().getFlowWidth(), crh, rcontext, context);
 		this.staticAreaContent = new PageAreaContent(seq.getLayoutMaster().getPageAreaBuilder(), blockContext, uai);
-		this.dataGroups = new RowGroupBuilder(master, seq, blockContext, uai).getResult().iterator();
+		this.dataGroups = new RowGroupBuilder(master, seq, blockContext, uai).getResult();
 	}
 
 	private PageImpl newPage() {

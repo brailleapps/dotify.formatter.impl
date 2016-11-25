@@ -16,7 +16,8 @@ class PageSequenceRecorder {
 	
 	private PageSequenceRecorderData data;
 
-	private RenderingScenario current = null;
+	private RenderingScenario currentScenario = null;
+	private RenderingScenario bestScenario = null;
 	private boolean invalid = false;
 	private double cost = 0;
 	private float height = 0;
@@ -70,40 +71,42 @@ class PageSequenceRecorder {
 				throw new IllegalArgumentException(id + " is a reserved key");
 			}
 		}
-		if (current != null) {
+		if (currentScenario != null) {
 			throw new IllegalStateException();
 		}
 	}
 	
 	void startScenario(RenderingScenario scenario) {
-		if (current == scenario) {
+		if (currentScenario == scenario) {
 			throw new IllegalStateException();
-		} else if (current == null) {
+		} else if (currentScenario == null) {
 			height = data.calcSize();
 			cost = Double.MAX_VALUE;
 			clearState(best);
+			bestScenario = null;
 			saveState(base, true);
 		} else {
 			if (!invalid) {
 				//TODO: measure, evaluate
 				float size = data.calcSize()-height;
-				double ncost = current.calculateCost(setParams(size, minWidth, forceCount));
+				double ncost = currentScenario.calculateCost(setParams(size, minWidth, forceCount));
 				if (ncost<cost) {
 					//if better, store
 					cost = ncost;
 					saveState(best, true);
+					bestScenario = currentScenario;
 				}
 			}
 			restoreState(base, true);
 		}
 		forceCount = 0;
 		minWidth = Float.MAX_VALUE;
-		current = scenario;
+		currentScenario = scenario;
 		invalid = false;
 	}
 
-	void endScenarios() {
-		if (current == null) {
+	RenderingScenario endScenarios() {
+		if (currentScenario == null) {
 			throw new IllegalStateException();
 		}
 		if (invalid) {
@@ -115,12 +118,15 @@ class PageSequenceRecorder {
 		} else {
 			//if not better
 			float size = data.calcSize()-height;
-			double ncost = current.calculateCost(setParams(size, minWidth, forceCount));
+			double ncost = currentScenario.calculateCost(setParams(size, minWidth, forceCount));
 			if (ncost>cost) {
 				restoreState(best, true);
+			} else {
+				bestScenario = currentScenario;
 			}
 		}
-		current = null;
+		currentScenario = null;
+		return bestScenario;
 	}
 	
 	/**
@@ -131,7 +137,7 @@ class PageSequenceRecorder {
 	 * @throws RuntimeException if no scenario is active 
 	 */
 	void invalidateScenario(Exception e) {
-		if (current == null) {
+		if (currentScenario == null) {
 			throw new IllegalStateException();
 		}
 		invalid = true;
@@ -143,7 +149,7 @@ class PageSequenceRecorder {
 	 * @param rec
 	 */
 	void processBlock(AbstractBlockContentManager bcm) {
-		if (current != null) {
+		if (currentScenario != null) {
 			if (invalid) {
 				return;
 			}
@@ -177,7 +183,7 @@ class PageSequenceRecorder {
 	}
 	
 	Iterator<RowGroupSequence> getResult(int index) {
-		if (current != null) {
+		if (currentScenario != null) {
 			throw new IllegalStateException();
 		}
 		return data.dataGroups.listIterator(index);

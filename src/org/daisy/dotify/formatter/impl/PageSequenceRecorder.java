@@ -29,11 +29,25 @@ class PageSequenceRecorder {
 		states = new HashMap<>();
 	}
 	
-	private void saveState(String id) {
+	void saveState(String id) {
+		saveState(id, false);
+	}
+	
+	void restoreState(String id) {
+		restoreState(id, false);
+	}
+	
+	private void saveState(String id, boolean internal) {
+		if (!internal) {
+			checkExternal(id);
+		}
 		states.put(id, new PageSequenceRecorderData(data));
 	}
 	
-	private void restoreState(String id) {
+	private void restoreState(String id, boolean internal) {
+		if (!internal) {
+			checkExternal(id);
+		}
 		PageSequenceRecorderData state = states.get(id);
 		if (state!=null) {
 			data = new PageSequenceRecorderData(state);
@@ -48,6 +62,19 @@ class PageSequenceRecorder {
 		return states.containsKey(id);
 	}
 	
+	private static final String[] reservedKeys = new String[]{base, best};
+	
+	private void checkExternal(String id) {
+		for (String k : reservedKeys) {
+			if (k.equals(id)) {
+				throw new IllegalArgumentException(id + " is a reserved key");
+			}
+		}
+		if (current != null) {
+			throw new IllegalStateException();
+		}
+	}
+	
 	void startScenario(RenderingScenario scenario) {
 		if (current == scenario) {
 			throw new IllegalStateException();
@@ -55,7 +82,7 @@ class PageSequenceRecorder {
 			height = data.calcSize();
 			cost = Double.MAX_VALUE;
 			clearState(best);
-			saveState(base);
+			saveState(base, true);
 		} else {
 			if (!invalid) {
 				//TODO: measure, evaluate
@@ -64,10 +91,10 @@ class PageSequenceRecorder {
 				if (ncost<cost) {
 					//if better, store
 					cost = ncost;
-					saveState(best);
+					saveState(best, true);
 				}
 			}
-			restoreState(base);
+			restoreState(base, true);
 		}
 		forceCount = 0;
 		minWidth = Float.MAX_VALUE;
@@ -81,7 +108,7 @@ class PageSequenceRecorder {
 		}
 		if (invalid) {
 			if (hasState(best)) {
-				restoreState(best);
+				restoreState(best, true);
 			} else {
 				throw new RuntimeException("Failed to render any scenario.");
 			}
@@ -90,7 +117,7 @@ class PageSequenceRecorder {
 			float size = data.calcSize()-height;
 			double ncost = current.calculateCost(setParams(size, minWidth, forceCount));
 			if (ncost>cost) {
-				restoreState(best);
+				restoreState(best, true);
 			}
 		}
 		current = null;

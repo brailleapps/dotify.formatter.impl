@@ -1,8 +1,11 @@
 package org.daisy.dotify.formatter.impl;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
 import java.util.NoSuchElementException;
 
 import org.daisy.dotify.api.formatter.FormattingTypes.BreakBefore;
@@ -47,83 +50,196 @@ class RowGroupBuilder {
 		rgb.keepWithPreviousSheets(g.getKeepWithPreviousSheets());
 	}
 	
-	Iterator<RowGroupSequence> getResult() {
-		return new Iterator<RowGroupSequence>() {
+	
+	ListIterator<RowGroupSequence> getResult() {
+		return new ListIterator<RowGroupSequence>() {
 			
-			int cursor = 0;
-			int nextBlock = 0;
+			int cursor = 0; // cursor for outside
 			PageSequenceRecorder rec = new PageSequenceRecorder();
-			RenderingScenario currentScenario;
 			RowGroupSequence next;
 			Iterator<RowGroupSequence> nexts;
+			List<Block> filteredSeq = new ArrayList<>();
+			State state = new State();
+			State mark = null;
+			String recMark = "mark1";
+			State nextMark = null; // becomes mark when cursor is incremented
+			String nextRecMark = "mark2";
 			
-			public boolean hasNext() {
-				if (next != null) {
-					return true;
-				} else {
+			class State implements Cloneable {
+				int cursor = 0; // cursor for computation
+				int nextBlock = 0; // index in seq
+				int nextFilteredBlock = 0; // index in filteredSeq
+				public Object clone() {
 					try {
-						next = computeNext();
-						return true;
-					} catch (NoSuchElementException e) {
-						return false;
+						return super.clone();
+					} catch (CloneNotSupportedException e) {
+						throw new InternalError("coding error");
 					}
 				}
 			}
 			
-			public RowGroupSequence next() {
-				if (next == null) {
-					next = computeNext();
+			public int nextIndex() {
+				return cursor;
+			}
+			
+			public int previousIndex() {
+				return cursor-1;
+			}
+			
+			public boolean hasNext() {
+				if (next != null || (nexts != null && nexts.hasNext())) {
+					return true;
+				} else {
+					if (nextMark == null) {
+						nextMark = (State)state.clone();
+						rec.saveState(nextRecMark);
+					}
+					try {
+						nexts = computeNext();
+						next = nexts.next();
+						return true;
+					} catch (NoSuchElementException e) {
+						return false;
+					} catch (IllegalStateException e) {
+						throw new RuntimeException("coding error");
+					}
+				}
+			}
+			
+			public boolean hasPrevious() {
+				return cursor != 0;
+			}
+			
+			public RowGroupSequence next() throws NoSuchElementException {
+				if (next == null && (nexts == null || !nexts.hasNext())) {
+					if (nextMark == null) {
+						nextMark = (State)state.clone();
+						rec.saveState(nextRecMark);
+					}
+					try {
+						nexts = computeNext();
+						next = nexts.next();
+					} catch (IllegalStateException e) {
+						throw new RuntimeException("coding error");
+					}
 				}
 				cursor++;
+				mark = nextMark;
+				nextMark = null;
+				String tmp = recMark;
+				recMark = nextRecMark;
+				nextRecMark = tmp;
 				RowGroupSequence r = next;
 				next = null;
 				return r;
 			}
 			
-			RowGroupSequence computeNext() {
+			/**
+			 * @throws IllegalStateException if recomputing the previous RowGroupSequence results in a
+			 * different scenario being selected than before, and one or more RowGroupSequences before the
+			 * previous one contain rows that belong to the old scenario. Upon getting this exception the
+			 * ListIterator may not be used again.
+			 */
+			public RowGroupSequence previous() throws IllegalStateException, NoSuchElementException {
+				if (cursor == 0) {
+					throw new NoSuchElementException();
+				}
+				if (mark == null) {
+					throw new IllegalStateException();
+				}
+				state = (State)mark.clone();
+				rec.restoreState(recMark);
+				cursor--;
+				try {
+					nexts = computeNext();
+					next = nexts.next();
+				} catch (NoSuchElementException e) {
+					throw new IllegalStateException();
+				}
+				nextMark = mark;
+				mark = null;
+				String tmp = nextRecMark;
+				nextRecMark = recMark;
+				recMark = tmp;
+				return next;
+			}
+			
+			/**
+			 * @throws NoSuchElementException if no iterator of one or more items can be returned.
+			 */
+			Iterator<RowGroupSequence> computeNext() throws IllegalStateException, NoSuchElementException {
+				Map<RenderingScenario,List<Block>> scenarios = null;
+				Map<RenderingScenario,List<Integer>> scenarioEndBlocks = null;
+				RenderingScenario currentScenario = null;
+				int nextBlockInScenario = 0;
 				while (true) {
-					if (nexts != null && nexts.hasNext()) {
-						return nexts.next();
-					}
-					if (nextBlock == seq.size()) {
-						if (currentScenario != null) {
-							rec.endScenarios();
+					Block g = state.nextBlock < seq.size() ? seq.elementAt(state.nextBlock) : null;
+					RenderingScenario scenario = g != null ? g.getRenderingScenario() : null;
+					if (currentScenario != null && scenario == null) {
+						RenderingScenario best = rec.endScenarios();
+						List<Integer> bestEndBlocks = scenarioEndBlocks.get(best);
+						int cursorAdvance = 0;
+						int blockBeforeScenarios = state.nextFilteredBlock - 1;
+						for (Block b : scenarios.get(best)) {
+							if (state.cursor + cursorAdvance < cursor) {
+								if (filteredSeq.get(state.nextFilteredBlock) != b) {
+									throw new IllegalStateException();
+								}
+							} else if (state.nextFilteredBlock == filteredSeq.size()) {
+								filteredSeq.add(b);
+							} else {
+								filteredSeq.set(state.nextFilteredBlock, b);
+							}
+							if (cursorAdvance < bestEndBlocks.size()
+							    && state.nextFilteredBlock == blockBeforeScenarios + 1 + bestEndBlocks.get(cursorAdvance)) {
+								cursorAdvance++;
+							}
+							state.nextFilteredBlock++;
 						}
-						nexts = rec.getResult(cursor);
-						if (nexts.hasNext()) {
-							continue;
-						} else {
+					}
+					Iterator<RowGroupSequence> iter = null;
+					if (currentScenario != scenario && scenario != null) {
+						if (currentScenario == null) {
+							iter = rec.getResult(state.cursor); // needed when startNew is true, but needs to be
+							                                    // computed before rec.startScenario (before startNew is
+							                                    // known)
+						}
+						rec.startScenario(scenario); // needs to be called before rec.isDataGroupsEmpty
+					}
+					boolean startNew = g != null ?
+						rec.isDataGroupsEmpty()
+						|| (g.getBreakBeforeType()==BreakBefore.PAGE && !rec.isDataEmpty())
+						|| g.getVerticalPosition()!=null
+						: false;
+					if (g == null || (startNew && (currentScenario == null || scenario == null))) {
+						List<RowGroupSequence> list = new ArrayList<>(); {
+							if (iter == null) {
+								iter = rec.getResult(state.cursor);
+							}
+							while (iter.hasNext()) {
+								list.add(iter.next());
+								state.cursor++;
+							}
+						}
+						Iterator<RowGroupSequence> ret = list.iterator();
+						if (ret.hasNext()) {
+							return ret;
+						} else if (g == null) {
 							throw new NoSuchElementException();
 						}
-					} else {
-						Block g = seq.elementAt(nextBlock);
-						RenderingScenario scenario = g.getRenderingScenario();
-						if (currentScenario != scenario) {
-							if (scenario != null) {
-								rec.startScenario(scenario);
-							} else {
-								rec.endScenarios();
+					}
+					if (g != null) {
+						if (currentScenario != scenario && scenario != null) {
+							if (currentScenario == null) {
+								scenarios = new HashMap<>();
+								scenarioEndBlocks = new HashMap<>();
 							}
-							currentScenario = scenario;
+							scenarios.put(scenario, new ArrayList<Block>());
+							scenarioEndBlocks.put(scenario, new ArrayList<Integer>());
+							nextBlockInScenario = 0;
 						}
+						currentScenario = scenario;
 						try {
-							boolean startNew = rec.isDataGroupsEmpty()
-								|| (g.getBreakBeforeType()==BreakBefore.PAGE && !rec.isDataEmpty())
-								|| g.getVerticalPosition()!=null;
-							if (startNew) {
-								if (currentScenario == null) {
-									List<RowGroupSequence> list = new ArrayList<>(); {
-										Iterator<RowGroupSequence> iter = rec.getResult(cursor);
-										while (iter.hasNext()) {
-											list.add(iter.next());
-										}
-									}
-									nexts = list.iterator();
-									if (nexts.hasNext()) {
-										continue;
-									}
-								}
-							}
 							AbstractBlockContentManager bcm = g.getBlockContentManager(bc, uai);
 							if (startNew) {
 								rec.newRowGroupSequence(g.getVerticalPosition(), new RowImpl("", bcm.getLeftMarginParent(), bcm.getRightMarginParent()));
@@ -204,12 +320,37 @@ class RowGroupBuilder {
 						} catch (Exception e) {
 							rec.invalidateScenario(e);
 						}
-						nextBlock++;
+						state.nextBlock++;
+						if (currentScenario != null) {
+							if (startNew) {
+								scenarioEndBlocks.get(currentScenario).add(nextBlockInScenario - 1);
+							}
+							nextBlockInScenario++;
+						} else {
+							if (state.cursor < cursor) {
+								if (filteredSeq.get(state.nextFilteredBlock) != g) {
+									throw new IllegalStateException();
+								}
+							} else if (state.nextFilteredBlock == filteredSeq.size()) {
+								filteredSeq.add(g);
+							} else {
+								filteredSeq.set(state.nextFilteredBlock, g);
+							}
+							state.nextFilteredBlock++;
+						}
 					}
 				}
 			}
 			
+			public void add(RowGroupSequence e) {
+				throw new UnsupportedOperationException("unmodifiable");
+			}
+			
 			public void remove() {
+				throw new UnsupportedOperationException("unmodifiable");
+			}
+			
+			public void set(RowGroupSequence e) {
 				throw new UnsupportedOperationException("unmodifiable");
 			}
 		};

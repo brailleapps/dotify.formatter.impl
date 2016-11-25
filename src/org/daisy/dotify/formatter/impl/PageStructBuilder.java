@@ -31,7 +31,7 @@ class PageStructBuilder {
 	private List<List<Sheet>> paginateInner(DefaultContext rcontext, boolean groupVolumeBreaks) throws PaginatorException {
 		try {
 		restart:while (true) {
-			crh.rewindUniqueChecks();
+			// crh.rewindUniqueChecks();
 			struct = new PageStruct();
 			List<List<Sheet>> groups = new ArrayList<>();
 			List<Sheet> currentGroup = new ArrayList<>();
@@ -108,7 +108,7 @@ class PageStructBuilder {
 	private PageSequence newSequence(BlockSequence seq, DefaultContext rcontext) throws PaginatorException, RestartPaginationException {
 		int offset = getCurrentPageOffset();
 		UnwriteableAreaInfo uai = new UnwriteableAreaInfo();
-		crh.markUniqueChecks();
+		// crh.markUniqueChecks();
 	  restart: while (true) {
 			PageSequence ps = new PageSequence(struct, seq.getLayoutMaster(), seq.getInitialPageNumber()!=null?seq.getInitialPageNumber() - 1:offset);
 			PageSequenceBuilder2 psb = new PageSequenceBuilder2(ps, ps.getLayoutMaster(), ps.getPageNumberOffset(), crh, uai, seq, context, rcontext);
@@ -118,9 +118,12 @@ class PageStructBuilder {
 						p = psb.nextPage();
 					} catch (RestartPaginationException2 e) {
 						if (!uai.isDirty()) {
-							throw new RuntimeException("Coding error");
+							throw new RuntimeException("coding error");
 						} else {
-							break;
+							uai.commit();
+							uai.rewind();
+							// crh.resetUniqueChecks();
+							continue restart;
 						}
 					}
 				}
@@ -133,10 +136,7 @@ class PageStructBuilder {
 				ps.addPage(p);
 			}
 			if (uai.isDirty()) {
-				uai.commit();
-				uai.rewind();
-				crh.resetUniqueChecks();
-				continue restart;
+				throw new RuntimeException("coding error");
 			}
 			struct.add(ps);
 			return ps;

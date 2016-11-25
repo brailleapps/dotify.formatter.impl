@@ -328,7 +328,7 @@ class PageImpl implements Page, Cloneable {
 					rows.next();
 					remaining++;
 				}
-				throw new PageFullException(flowHeight - remaining);
+				throw new PageFullException(flowHeight - remaining, false);
 			}
 		}
 		return ret;
@@ -576,7 +576,7 @@ class PageImpl implements Page, Cloneable {
 							unwriteableAreaInfo.setUnwriteableArea(bodyRow.block,
 							                                       bodyRow.positionInBlock,
 							                                       new UnwriteableArea(UnwriteableArea.Side.RIGHT, length));
-							throw new PageFullException(flowHeight);
+							throw new PageFullException(flowHeight, headerOrFooter);
 						}
 						sb.append(StringTools.fill(space, width - length));
 						bodyRows.previous();
@@ -972,6 +972,7 @@ class PageImpl implements Page, Cloneable {
 		this.volumeBreakAfterPriority = value;
 	}
 
+	@SuppressWarnings("unchecked")
 	public Object clone() {
 		PageImpl clone; {
 			try {

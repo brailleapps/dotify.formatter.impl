@@ -1,8 +1,10 @@
 package org.daisy.dotify.formatter.impl;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Stack;
@@ -303,7 +305,7 @@ class PageSequenceRecorder {
 		
 		ListIterator<E> listIterator(int index) {
 			lazyClaimOrCopyStack();
-			return unmodifiableIterator(stack.listIterator(index));
+			return unmodifiableIterator(stack, index, size);
 		}
 		
 		private void lazyClaimOrCopyStack() {
@@ -341,36 +343,53 @@ class PageSequenceRecorder {
 			}
 		}
 		
-		private static <E> UnmodifiableIterator<E> unmodifiableIterator(final ListIterator<E> iterator) {
+		private static <E> UnmodifiableIterator<E> unmodifiableIterator(final List<E> list, final int index, final int size) {
 			return new UnmodifiableIterator<E>() {
+				
+				ListIterator<E> iterator;
+				
+				private void lazyInit() {
+					if (iterator == null) {
+						if (list.size() > size) {
+							throw new ConcurrentModificationException();
+						}
+						iterator = list.listIterator(index);
+					}
+				}
 				
 				@Override
 				public int nextIndex() {
+					lazyInit();
 					return iterator.nextIndex();
 				}
 				
 				@Override
 				public int previousIndex() {
+					lazyInit();
 					return iterator.previousIndex();
 				}
 				
 				@Override
 				public boolean hasNext() {
+					lazyInit();
 					return iterator.hasNext();
 				}
 				
 				@Override
 				public boolean hasPrevious() {
+					lazyInit();
 					return iterator.hasPrevious();
 				}
 				
 				@Override
 				public E next() {
+					lazyInit();
 					return iterator.next();
 				}
 				
 				@Override
 				public E previous() {
+					lazyInit();
 					return iterator.previous();
 				}
 			};

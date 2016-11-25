@@ -100,7 +100,8 @@ public class UnwriteableAreaInfo {
 	// Note: not using LookupHandler because I have a slightly different use case.
 	
 	private Map<Position,UnwriteableArea> map = new HashMap<>();
-	private Map<Position,UnwriteableArea> uncommitted = new HashMap<>();
+	private Map<Position,UnwriteableArea> unstaged = new HashMap<>();
+	private Map<Position,UnwriteableArea> staged = new HashMap<>();
 	private Map<Position,UnwriteableArea> beforeMark = new HashMap<>();
 	private boolean dirty = false;
 	
@@ -113,7 +114,7 @@ public class UnwriteableAreaInfo {
 			throw new IllegalArgumentException("null");
 		}
 		Position pos = new Position(block, positionInBlock);
-		if (beforeMark.containsKey(pos) || uncommitted.put(pos, area) != null) {
+		if (beforeMark.containsKey(pos) || staged.containsKey(pos) || unstaged.put(pos, area) != null) {
 			throw new IllegalStateException();
 		}
 		if (!dirty && !area.equals(map.get(pos))) {
@@ -122,7 +123,7 @@ public class UnwriteableAreaInfo {
 	}
 	
 	public boolean isDirty() {
-		if (!dirty && uncommitted.size() < map.size()) {
+		if (!dirty && (unstaged.size() + staged.size()) < map.size()) {
 			dirty = true;
 		}
 		return dirty;
@@ -130,13 +131,16 @@ public class UnwriteableAreaInfo {
 	
 	public void commit() {
 		map.clear();
-		map.putAll(uncommitted);
-		uncommitted.clear();
+		map.putAll(staged);
+		map.putAll(unstaged);
+		unstaged.clear();
+		staged.clear();
 		dirty = false;
+		dirtyStaged = false;
 	}
 	
 	public void mark() {
-		if (!uncommitted.isEmpty()) {
+		if (!(unstaged.isEmpty() && staged.isEmpty())) {
 			throw new IllegalStateException("uncommitted values");
 		}
 		beforeMark.putAll(map);
@@ -144,13 +148,30 @@ public class UnwriteableAreaInfo {
 	}
 	
 	public void reset() {
-		uncommitted.clear();
+		unstaged.clear();
+		staged.clear();
 		dirty = false;
+		dirtyStaged = false;
+	}
+	
+	private boolean dirtyStaged;
+	
+	public void markUncommitted() {
+		staged.putAll(unstaged);
+		unstaged.clear();
+		dirtyStaged = dirty;
+	}
+	
+	public void resetUncommitted() {
+		unstaged.clear();
+		dirty = dirtyStaged;
 	}
 	
 	public void rewind() {
-		uncommitted.clear();
+		unstaged.clear();
+		staged.clear();
 		dirty = false;
+		dirtyStaged = false;
 		map.putAll(beforeMark);
 		beforeMark.clear();
 	}

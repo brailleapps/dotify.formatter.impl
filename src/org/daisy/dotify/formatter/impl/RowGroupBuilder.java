@@ -89,7 +89,7 @@ class RowGroupBuilder {
 						if (currentScenario != null) {
 							rec.endScenarios();
 						}
-						nexts = rec.getResult().listIterator(cursor);
+						nexts = rec.getResult(cursor);
 						if (nexts.hasNext()) {
 							continue;
 						} else {
@@ -113,7 +113,7 @@ class RowGroupBuilder {
 							if (startNew) {
 								if (currentScenario == null) {
 									List<RowGroupSequence> list = new ArrayList<>(); {
-										Iterator<RowGroupSequence> iter = rec.getResult().listIterator(cursor);
+										Iterator<RowGroupSequence> iter = rec.getResult(cursor);
 										while (iter.hasNext()) {
 											list.add(iter.next());
 										}

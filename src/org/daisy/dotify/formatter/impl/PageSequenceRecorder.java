@@ -1,7 +1,9 @@
 package org.daisy.dotify.formatter.impl;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
-import java.util.List;
+import java.util.Iterator;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Stack;
 
@@ -143,11 +145,15 @@ class PageSequenceRecorder {
 		data.addRowGroup(rg); 
 	}
 	
-	List<RowGroupSequence> getResult() {
+	Iterator<RowGroupSequence> getResult() {
+		return getResult(0);
+	}
+	
+	Iterator<RowGroupSequence> getResult(int index) {
 		if (current != null) {
 			throw new IllegalStateException();
 		}
-		return data.dataGroups;
+		return data.dataGroups.listIterator(index);
 	}
 	
 	int getKeepWithNext() {
@@ -167,11 +173,11 @@ class PageSequenceRecorder {
 	}
 
 	private static class PageSequenceRecorderData {
-		private Stack<RowGroupSequence> dataGroups = new Stack<>();
+		private final PushOnlyStack<RowGroupSequence> dataGroups;
 		private int keepWithNext = 0;
 
 		PageSequenceRecorderData() {
-			dataGroups = new Stack<>();
+			dataGroups = new PushOnlyStack<>();
 			keepWithNext = 0;
 		}
 
@@ -180,10 +186,7 @@ class PageSequenceRecorder {
 		 * @param template the instance to copy
 		 */
 		PageSequenceRecorderData(PageSequenceRecorderData template) {
-			dataGroups = new Stack<>();
-			for (RowGroupSequence rgs : template.dataGroups) {
-				dataGroups.add(new RowGroupSequence(rgs));
-			}
+			dataGroups = new PushOnlyStack<>(template.dataGroups);
 			keepWithNext = template.keepWithNext;
 		}
 
@@ -201,12 +204,161 @@ class PageSequenceRecorder {
 		
 		void newRowGroupSequence(BlockPosition pos, RowImpl emptyRow) {
 			RowGroupSequence rgs = new RowGroupSequence(pos, emptyRow);
-			dataGroups.add(rgs);
+			dataGroups.push(rgs);
 		}
 		
 		void addRowGroup(RowGroup rg) {
 			dataGroups.peek().getGroup().add(rg);
 		}
 
+	}
+	
+	private static class PushOnlyStack<E extends Cloneable> implements Iterable<E> {
+		
+		Stack<E> stack;
+		int size;
+		
+		/** Size of template */
+		final int initialSize;
+		
+		/** Deep copy of template.peek() */
+		final E peekCopy;
+		
+		/** The PushOnlyStack that created stack */
+		PushOnlyStack<E> stackCreator;
+		
+		/** stackCreator.stackOwner determines which PushOnlyStack has claimed the rights to push to stack */
+		PushOnlyStack<E> stackOwner;
+		
+		PushOnlyStack() {
+			stack = new Stack<E>();
+			size = initialSize = 0;
+			peekCopy = null;
+			stackCreator = this;
+		}
+		
+		/**
+		 * The assumption is made that all items except template.peek() are not mutated.
+		 */
+		PushOnlyStack(PushOnlyStack<E> template) {
+			stack = template.stack;
+			size = initialSize = template.size;
+			peekCopy = size > 0 ? deepCopy(template.peek()) : null;
+			stackCreator = template.stackCreator;
+		}
+		
+		E peek() {
+			if (peekCopy != null && size == initialSize) {
+				return peekCopy;
+			}
+			return stack.elementAt(size-1);
+		}
+		
+		void push(E item) {
+			lazyClaimOrCopyStack();
+			stack.push(item);
+			size++;
+		}
+		
+		boolean isEmpty() {
+			return size == 0;
+		}
+		
+		public Iterator<E> iterator() {
+			return listIterator(0);
+		}
+		
+		ListIterator<E> listIterator(int index) {
+			lazyClaimOrCopyStack();
+			return unmodifiableIterator(stack.listIterator(index));
+		}
+		
+		private void lazyClaimOrCopyStack() {
+			if (stackCreator.stackOwner == null) {
+				stackCreator.stackOwner = this;
+			} else if (stackCreator.stackOwner != this) {
+				Stack<E> copy = new Stack<E>();
+				for (int i = 0; i < initialSize; i++) {
+					if (i == initialSize - 1) {
+						copy.add(peekCopy);
+					} else {
+						copy.add(stack.elementAt(i));
+					}
+				}
+				stack = copy;
+				stackCreator = stackOwner = this;
+			}
+		}
+		
+		/** Assumes that clone() does a deep copy of item */
+		@SuppressWarnings("unchecked")
+		private static <E> E deepCopy(E item) {
+			try {
+				return (E)item.getClass().getMethod("clone").invoke(item);
+			} catch (IllegalAccessException e) {
+				throw new RuntimeException("coding error");
+			} catch (SecurityException e) {
+				throw new RuntimeException("coding error");
+			} catch (NoSuchMethodException e) {
+				throw new RuntimeException("coding error");
+			} catch (IllegalArgumentException e) {
+				throw new RuntimeException("coding error");
+			} catch (InvocationTargetException e) {
+				throw new RuntimeException(e.getTargetException());
+			}
+		}
+		
+		private static <E> UnmodifiableIterator<E> unmodifiableIterator(final ListIterator<E> iterator) {
+			return new UnmodifiableIterator<E>() {
+				
+				@Override
+				public int nextIndex() {
+					return iterator.nextIndex();
+				}
+				
+				@Override
+				public int previousIndex() {
+					return iterator.previousIndex();
+				}
+				
+				@Override
+				public boolean hasNext() {
+					return iterator.hasNext();
+				}
+				
+				@Override
+				public boolean hasPrevious() {
+					return iterator.hasPrevious();
+				}
+				
+				@Override
+				public E next() {
+					return iterator.next();
+				}
+				
+				@Override
+				public E previous() {
+					return iterator.previous();
+				}
+			};
+		}
+		
+		private static abstract class UnmodifiableIterator<E> implements ListIterator<E> {
+			
+			@Override
+			public void remove() {
+				throw new UnsupportedOperationException("unmodifiable");
+			}
+			
+			@Override
+			public void set(E e) {
+				throw new UnsupportedOperationException("unmodifiable");
+			}
+			
+			@Override
+			public void add(E e) {
+				throw new UnsupportedOperationException("unmodifiable");
+			}
+		}
 	}
 }

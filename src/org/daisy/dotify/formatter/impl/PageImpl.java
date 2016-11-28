@@ -324,11 +324,22 @@ class PageImpl implements Page, Cloneable {
 			}
 			if (rows.hasNext()) {
 				int remaining = 0;
+				int remainingNotSpaceOnly = 0;
 				while (rows.hasNext()) {
-					rows.next();
+					RowImpl r = rows.next();
 					remaining++;
+					String chars = trailingWs.matcher(r.getChars()).replaceAll("");
+					if (bottomAreaSize > 0 || chars.length() > 0 || !r.getLeftMargin().isSpaceOnly() || !r.getRightMargin().isSpaceOnly()) {
+						remainingNotSpaceOnly = remaining;
+					}
 				}
-				throw new PageFullException(flowHeight - remaining, false);
+				if (remainingNotSpaceOnly > 0) {
+					if (Math.ceil(spaceNeeded()) <= flowHeight) {
+						throw new PageFullException(flowHeight - remainingNotSpaceOnly, false);
+					} else {
+						throw new PaginatorException("Too many rows for page");
+					}
+				}
 			}
 		}
 		return ret;

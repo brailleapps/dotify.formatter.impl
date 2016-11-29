@@ -1473,6 +1473,10 @@ public class ObflParser extends XMLParserBase {
 				parseOnEvent(event, input, rlb.newOnPageStart(), ObflQName.ON_PAGE_START, tp);
 			} else if (equalsStart(event, ObflQName.ON_PAGE_END)) {
 				parseOnEvent(event, input, rlb.newOnPageEnd(), ObflQName.ON_PAGE_END, tp);
+			} else if (equalsStart(event, ObflQName.ON_VOLUME_START)) {
+				parseOnEvent(event, input, rlb.newOnVolumeStart(), ObflQName.ON_VOLUME_START, tp);
+			} else if (equalsStart(event, ObflQName.ON_VOLUME_END)) {
+				parseOnEvent(event, input, rlb.newOnVolumeEnd(), ObflQName.ON_VOLUME_END, tp);
 			} else if (equalsStart(event, ObflQName.ON_COLLECTION_START)) {
 				parseOnEvent(event, input, rlb.newOnCollectionStart(), ObflQName.ON_COLLECTION_START, tp);
 			} else if (equalsStart(event, ObflQName.ON_COLLECTION_END)) {

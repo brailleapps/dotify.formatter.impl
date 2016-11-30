@@ -10,9 +10,7 @@
             <field>
                <marker-reference marker="foo/prev" direction="forward" scope="page-content"/>
             </field>
-            <field>
-				<string value=""/>
-			</field>
+            <field/>
             <field>
                <marker-reference marker="foo" direction="backward" scope="sequence"/>
             </field>
@@ -21,12 +19,8 @@
             <field>
                <marker-reference marker="foo" direction="backward" scope="page"/>
             </field>
-            <field>
-				<string value=""/>
-			</field>
-            <field>
-				<string value=""/>
-			</field>
+            <field/>
+            <field/>
          </footer>
       </default-template>
    </layout-master>

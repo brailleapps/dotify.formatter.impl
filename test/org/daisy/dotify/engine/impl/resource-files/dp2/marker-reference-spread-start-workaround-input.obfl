@@ -10,9 +10,7 @@
             <field>
                <marker-reference marker="foo/prev" direction="forward" scope="spread-content" start-offset="-1"/>
             </field>
-            <field>
-                <string value=""/>
-            </field>
+            <field/>
             <field>
                <marker-reference marker="foo" direction="backward" scope="sequence"/>
             </field>
@@ -21,12 +19,8 @@
             <field>
                <marker-reference marker="foo" direction="backward" scope="spread"/>
             </field>
-            <field>
-                <string value=""/>
-            </field>
-            <field>
-                <string value=""/>
-            </field>
+            <field/>
+            <field/>
          </footer>
       </template>
       <template use-when="(= (% $page 2) 0)">
@@ -34,9 +28,7 @@
             <field>
                <marker-reference marker="foo/prev" direction="forward" scope="spread-content"/>
             </field>
-            <field>
-                <string value=""/>
-            </field>
+            <field/>
             <field>
                <marker-reference marker="foo" direction="backward" scope="sequence" start-offset="1"/>
             </field>
@@ -45,12 +37,8 @@
             <field>
                <marker-reference marker="foo" direction="backward" scope="spread" start-offset="1"/>
             </field>
-            <field>
-                <string value=""/>
-            </field>
-            <field>
-                <string value=""/>
-            </field>
+            <field/>
+            <field/>
          </footer>
       </template>
       <default-template>

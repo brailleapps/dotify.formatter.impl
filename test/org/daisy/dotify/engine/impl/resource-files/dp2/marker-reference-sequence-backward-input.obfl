@@ -10,12 +10,8 @@
             <field>
                <marker-reference marker="foo" direction="backward" scope="sequence"/>
             </field>
-            <field>
-				<string value=""/>
-			</field>
-            <field>
-				<string value=""/>
-			</field>
+            <field/>
+            <field/>
          </header>
          <footer/>
       </default-template>

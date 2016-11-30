@@ -4,7 +4,7 @@
       <default-template>
          <header/>
          <footer>
-            <field/>
+            <field allow-text-flow="true"/>
             <field>
                <string value="   "/>
                <current-page number-format="default"/>

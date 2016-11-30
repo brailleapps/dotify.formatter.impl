@@ -10,9 +10,7 @@
             <field>
                <marker-reference marker="foo" direction="forward" scope="page-content"/>
             </field>
-            <field>
-				<string value=""/>
-			</field>
+            <field/>
             <field>
                <marker-reference marker="foo" direction="backward" scope="page-content"/>
             </field>

@@ -16,4 +16,11 @@ public class FlowInFooterTest extends AbstractFormatterEngineTest {
 		        "resource-files/flow-in-footer-1-expected.pef",
 		        false);
 	}
+	
+	// @Test // XFAIL
+	public void testFlowInFooterWithMarkerReference() throws LayoutEngineException, IOException, PagedMediaWriterConfigurationException {
+		testPEF("resource-files/flow-in-footer-with-marker-reference-input.obfl",
+		        "resource-files/flow-in-footer-with-marker-reference-expected.pef",
+		        true);
+	}
 }

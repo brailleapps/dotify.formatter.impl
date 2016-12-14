@@ -349,6 +349,10 @@ class PageImpl implements Page, Cloneable {
 		return ret;
 	}
 
+	/*
+	 * The assumption is made that by now all pages have been added to the parent sequence and volume scopes
+	 * have been set on the page struct.
+	 */
 	@Override
 	public List<Row> getRows() {
 
@@ -679,6 +683,10 @@ class PageImpl implements Page, Cloneable {
 		return rv;
 	}
 	
+	/*
+	 * Note that the result of this function is not constant because getPageInSequenceWithOffset(),
+	 * getPageInVolumeWithOffset() and shouldAdjustOutOfBounds() are not constant.
+	 */
 	private static String resolveField(Field field, PageImpl p, DefaultTextAttribute.Builder b) {
 		if (field instanceof NoField) {
 			return null;
@@ -720,6 +728,10 @@ class PageImpl implements Page, Cloneable {
 		return sb.toString();
 	}
 
+	/*
+	 * Note that the result of this function is not constant because getPageInSequenceWithOffset(),
+	 * getPageInVolumeWithOffset() and isWithinVolumeSpreadScope() are not constant.
+	 */
 	private static String findMarker(PageImpl page, MarkerReferenceField markerRef) {
 		if (page==null) {
 			return "";
@@ -777,6 +789,10 @@ class PageImpl implements Page, Cloneable {
 		}
 	}
 	
+	/*
+	 * Note that the result of this function is not constant because isWithinVolumeSpreadScope() is not
+	 * constant.
+	 */
 	private boolean shouldAdjustOutOfBounds(MarkerReferenceField markerRef) {
 		if (markerRef.getSearchDirection()==MarkerSearchDirection.FORWARD && markerRef.getOffset()>=0 ||
 			markerRef.getSearchDirection()==MarkerSearchDirection.BACKWARD && markerRef.getOffset()<=0) {
@@ -819,6 +835,9 @@ class PageImpl implements Page, Cloneable {
 	/*
 	 * This method is unused at the moment, but could be activated if additional scopes are added to the API,
 	 * namely SPREAD_WITHIN_DOCUMENT
+	 *
+	 * Note that the result of this function is not constant because getPageInDocumentWithOffset() is not
+	 * constant.
 	 */
 	@SuppressWarnings("unused")
 	private boolean isWithinDocumentSpreadScope(int offset) {
@@ -830,6 +849,10 @@ class PageImpl implements Page, Cloneable {
 		}
 	}
 	
+	/*
+	 * Note that the result of this function is not constant because getPageInVolumeWithOffset() is not
+	 * constant.
+	 */
 	private boolean isWithinVolumeSpreadScope(int offset) {
 		if (offset==0) {
 			return true;
@@ -862,6 +885,10 @@ class PageImpl implements Page, Cloneable {
 				);
 	}
 	
+	/*
+	 * Note that the result of this function is not constant because getSequenceParent().getPageCount() and
+	 * getSequenceParent().getPage() are not constant because PageSequence is mutable.
+	 */
 	private PageImpl getPageInSequenceWithOffset(int offset, boolean adjustOutOfBounds) {
 		if (offset==0) {
 			return this;
@@ -878,6 +905,11 @@ class PageImpl implements Page, Cloneable {
 		}
 	}
 	
+	/*
+	 * Note that the result of this function is not constant because getPageInScope() and
+	 * getSequenceParent().getParent().getContentsInVolume() are not constant because PageSequence and
+	 * PageStruct are mutable.
+	 */
 	private PageImpl getPageInVolumeWithOffset(int offset, boolean adjustOutOfBounds) {
 		if (offset==0) {
 			return this;
@@ -886,6 +918,9 @@ class PageImpl implements Page, Cloneable {
 		}
 	}
 
+	/*
+	 * Note that the result of this function is not constant because getPageInScope() is not constant.
+	 */
 	private PageImpl getPageInDocumentWithOffset(int offset, boolean adjustOutOfBounds) {
 		if (offset==0) {
 			return this;
@@ -894,6 +929,11 @@ class PageImpl implements Page, Cloneable {
 		}
 	}
 	
+	/*
+	 * Note that the result of this function is not constant because
+	 * getSequenceParent().getParent().getPageView().getPages() is not constant because PageSequence is
+	 * mutable.
+	 */
 	private PageImpl getPageInScope(PageView pageView, int offset, boolean adjustOutOfBounds) {
 		if (offset==0) {
 			return this;

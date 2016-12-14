@@ -244,9 +244,10 @@ class PageSequenceBuilder2 {
 									}
 									try {
 										state = (State)stateBeforeDataGroup.clone();
-										uai.commit();
-										uai.reset();
 										dataGroups.previous();
+										
+										// Note: in case of an endless loop this will eventually cause a
+										// StackOverFlowError on the next call to pages.add()
 										pages = pages.subList(0, pageCountBeforeDataGroup);
 										continue restartRowGroupSequence;
 									} catch (IllegalStateException ee) {
@@ -285,8 +286,6 @@ class PageSequenceBuilder2 {
 			}
 			if (uai.isDirty()) {
 				state = (State)stateBeforeDataGroup.clone();
-				uai.commit();
-				uai.reset();
 				dataGroups.previous();
 				pages = pages.subList(0, pageCountBeforeDataGroup);
 				continue restartRowGroupSequence;

@@ -13,13 +13,15 @@
       </default-template>
    </layout-master>
    <sequence master="a">
-      <block>
+      <block id="a">
          ⠁⠁⠁ ⠁⠁⠁ ⠁⠁⠁ ⠁⠁⠁
       </block>
-      <block border-bottom-style="solid">
+      <block id="b" border-bottom-style="solid">
          ⠁⠁⠁ ⠁⠁⠁ ⠁⠁⠁ ⠁⠁⠁
       </block>
-      <block>
+      <block id="c">
+         ⠁⠁⠁ ⠁⠁⠁ ⠁⠁⠁ ⠁⠁⠁
+         ⠁⠁⠁ ⠁⠁⠁ ⠁⠁⠁ ⠁⠁⠁
          ⠁⠁⠁ ⠁⠁⠁ ⠁⠁⠁ ⠁⠁⠁
          ⠁⠁⠁ ⠁⠁⠁ ⠁⠁⠁ ⠁⠁⠁
      </block>

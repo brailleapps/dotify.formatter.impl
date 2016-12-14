@@ -106,7 +106,12 @@ public class UnwriteableAreaInfo {
 	private boolean dirty = false;
 	
 	public UnwriteableArea getUnwriteableArea(Block block, int positionInBlock) {
-		return map.get(new Position(block, positionInBlock));
+		Position pos = new Position(block, positionInBlock);
+		UnwriteableArea area = map.get(pos);
+		if (area == null) {
+			area = beforeMark.get(pos);
+		}
+		return area;
 	}
 	
 	public void setUnwriteableArea(Block block, int positionInBlock, UnwriteableArea area) {
@@ -114,7 +119,7 @@ public class UnwriteableAreaInfo {
 			throw new IllegalArgumentException("null");
 		}
 		Position pos = new Position(block, positionInBlock);
-		if (beforeMark.containsKey(pos) || staged.containsKey(pos) || unstaged.put(pos, area) != null) {
+		if (staged.containsKey(pos) || unstaged.put(pos, area) != null) {
 			throw new IllegalStateException();
 		}
 		if (!dirty && !area.equals(map.get(pos))) {

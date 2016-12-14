@@ -179,11 +179,15 @@ class PageImpl implements Page, Cloneable {
 		if (rowsOnPage()==0) {
 			contentMarkersBegin = markers.size();
 		}
+		float spaceUsed = spaceNeeded();
 		bodyRows.add(r);
 		int markerCountBefore = markers.size();
 		markers.addAll(r.getMarkers());
-		if (Math.ceil(spaceNeeded()) > flowHeight - textFlowIntoHeaderHeight - textFlowIntoFooterHeight) {
+		if (Math.ceil(spaceUsed) >= flowHeight - textFlowIntoHeaderHeight - textFlowIntoFooterHeight) {
 			try {
+				if (textFlowIntoHeaderHeight + textFlowIntoFooterHeight == 0) {
+					throw new PaginatorException("Too many rows for page");
+				}
 				TextBorderStyle border = master.getBorder();
 				if (border == null) {
 					border = TextBorderStyle.NONE;

@@ -56,6 +56,7 @@ import org.daisy.dotify.api.formatter.MarkerIndicatorRegion;
 import org.daisy.dotify.api.formatter.MarkerReferenceField;
 import org.daisy.dotify.api.formatter.MarkerReferenceField.MarkerSearchDirection;
 import org.daisy.dotify.api.formatter.MarkerReferenceField.MarkerSearchScope;
+import org.daisy.dotify.api.formatter.NoField;
 import org.daisy.dotify.api.formatter.NumeralStyle;
 import org.daisy.dotify.api.formatter.PageAreaBuilder;
 import org.daisy.dotify.api.formatter.PageAreaProperties;
@@ -418,7 +419,15 @@ public class ObflParser extends XMLParserBase {
 			event=input.nextEvent();
 			if (equalsStart(event, ObflQName.FIELD)) {
 				String textStyle = getAttr(event, ObflQName.ATTR_TEXT_STYLE);
+				String allowTextFlow = getAttr(event, ObflQName.ATTR_ALLOW_TEXT_FLOW);
 				ArrayList<Field> compound = parseField(event, input);
+				if ("true".equals(allowTextFlow)) {
+					if (!compound.isEmpty()) {
+						throw new RuntimeException("No content supported in " + ObflQName.FIELD + " element when "
+						                           + ObflQName.ATTR_ALLOW_TEXT_FLOW + " is 'true'");
+					}
+					compound.add(NoField.getInstance());
+				}
 				if (compound.size()==1) {
 					fields.add(compound.get(0));
 				} else {

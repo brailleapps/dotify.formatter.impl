@@ -2,6 +2,7 @@ package org.daisy.dotify.formatter.impl;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.TreeSet;
 
 import org.daisy.dotify.common.text.StringTools;
@@ -29,7 +30,10 @@ class PaginatorTools {
 	
 	private PaginatorTools() { }
 	
-	private static String distributeEqualSpacing(ArrayList<String> units, int width, String padding, boolean truncate) throws PaginatorToolsException {
+	/**
+	 * See distributeRetain
+	 */
+	private static List<String> distributeEqualSpacing(ArrayList<String> units, int width, String padding, boolean truncate) throws PaginatorToolsException {
 		if (units.size()==1) {
 			String unit = units.get(0);
 			if (unit.codePointCount(0, unit.length()) > width) {
@@ -39,7 +43,9 @@ class PaginatorTools {
 					throw new PaginatorToolsException("Text does not fit within provided space of " + width + ": " + units.get(0));
 				}
 			}
-			return unit;
+			ArrayList<String> ret = new ArrayList<String>();
+			ret.add(unit);
+			return ret;
 		}
 		int chunksLength = 0;
 		for (String s : units) {
@@ -71,17 +77,21 @@ class PaginatorTools {
 		int parts = units.size()-1;
 		double target = totalSpace/(double)parts;
 		int used = 0;
-		StringBuffer sb = new StringBuffer();
+		int length = 0;
+		ArrayList<String> ret = new ArrayList<String>();
 		for (int i=0; i<units.size(); i++) {
+			String unit = units.get(i);
 			if (i>0) {
 				int spacing = (int)Math.round(i * target) - used;
 				used += spacing;
-				sb.append(StringTools.fill(padding, spacing));
+				ret.add(StringTools.fill(padding, spacing));
+				length += spacing;
 			}
-			sb.append(units.get(i));
+			ret.add(unit);
+			length += unit.length();
 		}
-		assert sb.length()==width;
-		return sb.toString();
+		assert length==width;
+		return ret;
 	}
 	
 	private static String distributeTable(ArrayList<String> units, int width, String padding) throws PaginatorToolsException {
@@ -123,15 +133,32 @@ class PaginatorTools {
 	 */
 	public static String distribute(ArrayList<String> units, int width, String padding, DistributeMode mode) throws PaginatorToolsException {
 		switch (mode) {
-			case EQUAL_SPACING:
-				return distributeEqualSpacing(units, width, padding, false);
-			case EQUAL_SPACING_TRUNCATE:
-				return distributeEqualSpacing(units, width, padding, true);
-			case UNISIZE_TABLE_CELL:
-				return distributeTable(units, width, padding);
+		case UNISIZE_TABLE_CELL:
+			return distributeTable(units, width, padding);
+		default:
+			StringBuffer b = new StringBuffer();
+			for (String s : distributeRetain(units, width, padding, mode))
+				b.append(s);
+			return b.toString();
 		}
-		// Cannot happen
-		return null;
+	}
+
+	/**
+	 * @param units
+	 * @return a list of size 2*N-1, where N is the size of <tt>units</tt>. Element i of
+	 *         <tt>unit</tt> corresponds with element 2*i in the returned list. Elements i*2+1 for
+	 *         i=(0..N-1) is padding between units. The sum of the lengths of all strings equals
+	 *         <tt>width</tt>.
+	 */
+	public static List<String> distributeRetain(ArrayList<String> units, int width, String padding, DistributeMode mode) throws PaginatorToolsException {
+		switch (mode) {
+		case EQUAL_SPACING:
+			return distributeEqualSpacing(units, width, padding, false);
+		case EQUAL_SPACING_TRUNCATE:
+			return distributeEqualSpacing(units, width, padding, true);
+		default:
+			throw new IllegalArgumentException();
+		}
 	}
 
 	public static String distribute(Collection<TabStopString> units) {

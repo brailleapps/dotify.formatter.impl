@@ -31,7 +31,7 @@ class PageStructBuilder {
 	private List<List<Sheet>> paginateInner(DefaultContext rcontext, boolean groupVolumeBreaks) throws PaginatorException {
 		try {
 		restart:while (true) {
-			crh.resetUniqueChecks();
+			// crh.rewindUniqueChecks();
 			struct = new PageStruct();
 			List<List<Sheet>> groups = new ArrayList<>();
 			List<Sheet> currentGroup = new ArrayList<>();
@@ -107,21 +107,40 @@ class PageStructBuilder {
 
 	private PageSequence newSequence(BlockSequence seq, DefaultContext rcontext) throws PaginatorException, RestartPaginationException {
 		int offset = getCurrentPageOffset();
-		PageSequence ps = new PageSequence(struct, seq.getLayoutMaster(), seq.getInitialPageNumber()!=null?seq.getInitialPageNumber() - 1:offset);
-		PageSequenceBuilder2 psb = new PageSequenceBuilder2(ps.getLayoutMaster(), ps.getPageNumberOffset(), crh, seq, context, rcontext);
-		struct.add(ps);
-		while (psb.hasNext()) {
-			PageImpl p = psb.nextPage();
-			p.setSequenceParent(ps);
-			//This is for pre/post volume contents, where the volume number is known
-			if (rcontext.getCurrentVolume()!=null) {
-				for (String id : p.getIdentifiers()) {
-					crh.setVolumeNumber(id, rcontext.getCurrentVolume());
+		UnwriteableAreaInfo uai = new UnwriteableAreaInfo();
+		// crh.markUniqueChecks();
+	  restart: while (true) {
+			PageSequence ps = new PageSequence(struct, seq.getLayoutMaster(), seq.getInitialPageNumber()!=null?seq.getInitialPageNumber() - 1:offset);
+			PageSequenceBuilder2 psb = new PageSequenceBuilder2(ps, ps.getLayoutMaster(), ps.getPageNumberOffset(), crh, uai, seq, context, rcontext);
+			while (psb.hasNext()) {
+				PageImpl p; {
+					try {
+						p = psb.nextPage();
+					} catch (RestartPaginationException2 e) {
+						if (!uai.isDirty()) {
+							throw new RuntimeException("coding error");
+						} else {
+							uai.commit();
+							uai.rewind();
+							// crh.resetUniqueChecks();
+							continue restart;
+						}
+					}
 				}
+				//This is for pre/post volume contents, where the volume number is known
+				if (rcontext.getCurrentVolume()!=null) {
+					for (String id : p.getIdentifiers()) {
+						crh.setVolumeNumber(id, rcontext.getCurrentVolume());
+					}
+				}
+				ps.addPage(p);
 			}
-			ps.addPage(p);
+			if (uai.isDirty()) {
+				throw new RuntimeException("coding error");
+			}
+			struct.add(ps);
+			return ps;
 		}
-		return ps;
 	}
 	
 	private int getCurrentPageOffset() {

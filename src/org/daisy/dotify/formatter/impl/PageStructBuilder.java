@@ -120,7 +120,6 @@ class PageStructBuilder {
 						if (!uai.isDirty()) {
 							throw new RuntimeException("coding error");
 						} else {
-							uai.commit();
 							uai.rewind();
 							// crh.resetUniqueChecks();
 							continue restart;

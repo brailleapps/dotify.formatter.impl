@@ -151,10 +151,14 @@ class PageSequenceBuilder2 {
 			return nextPages.next();
 		}
 		List<PageImpl> pages = new ArrayList<PageImpl>();
+		// uai.mark();
 	  restartRowGroupSequence: while (dataGroups.hasNext()) {
 			State stateBeforeDataGroup = (State)state.clone();
 			int pageCountBeforeDataGroup = pages.size();
-			uai.commit();
+			// FIXME: mark() is used here to empty the map field of uai because setUnwriteableArea is only called when a
+			// text line is too long to be flowed into a header/footer, so isDirty would give false positives which
+			// could result in an endless loop. However with this solution isDirty gives false negatives which could
+			// result in some lines being too short.
 			uai.mark();
 			//pick up next group
 			RowGroupSequence rgs = dataGroups.next();
@@ -233,6 +237,7 @@ class PageSequenceBuilder2 {
 									// has rows in an already return page. Because we can't easily predict this
 									// situation we simply propagate the exception to PageStructBuilder.newSequence and
 									// start all over.
+									uai.commit();
 									throw new RestartPaginationOfSequenceException();
 								}
 								int effectiveFlowHeight = e.getEffectiveFlowHeight();
@@ -242,17 +247,21 @@ class PageSequenceBuilder2 {
 									if (!uai.isDirty()) {
 										throw new RuntimeException("coding error");
 									}
+									uai.commit();
 									try {
-										state = (State)stateBeforeDataGroup.clone();
 										dataGroups.previous();
-										
-										// Note: in case of an endless loop this will eventually cause a
-										// StackOverFlowError on the next call to pages.add()
-										pages = pages.subList(0, pageCountBeforeDataGroup);
-										continue restartRowGroupSequence;
 									} catch (IllegalStateException ee) {
+										// This will happen when recomputing the previous RowGroupSequence results in a
+										// different scenario being selected than before, and one or more
+										// RowGroupSequences already consumed contain rows that belong to the old
+										// scenario.
 										throw new RestartPaginationOfSequenceException();
 									}
+									state = (State)stateBeforeDataGroup.clone();
+									// Note: in case of an endless loop this will eventually cause a
+									// StackOverFlowError on the next call to pages.add()
+									pages = pages.subList(0, pageCountBeforeDataGroup);
+									continue restartRowGroupSequence;
 								} else {
 									flowHeight = effectiveFlowHeight;
 									state = (State)stateBeforeSplit.clone();
@@ -285,10 +294,14 @@ class PageSequenceBuilder2 {
 				}
 			}
 			if (uai.isDirty()) {
+				uai.commit();
 				state = (State)stateBeforeDataGroup.clone();
 				dataGroups.previous();
 				pages = pages.subList(0, pageCountBeforeDataGroup);
 				continue restartRowGroupSequence;
+			} else {
+				uai.reset();
+				// uai.mark();
 			}
 			if (!pages.isEmpty()) {
 				nextPages = pages.iterator();

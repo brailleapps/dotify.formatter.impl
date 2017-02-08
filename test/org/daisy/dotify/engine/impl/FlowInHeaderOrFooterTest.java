@@ -9,12 +9,12 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 @SuppressWarnings("javadoc")
-public class FlowInFooterTest extends AbstractFormatterEngineTest {
+public class FlowInHeaderOrFooterTest extends AbstractFormatterEngineTest {
 	
 	@Test
-	public void testFlowInFooter1() throws LayoutEngineException, IOException, PagedMediaWriterConfigurationException {
-		testPEF("resource-files/flow-in-footer-1-input.obfl",
-		        "resource-files/flow-in-footer-1-expected.pef",
+	public void testFlowInFooter() throws LayoutEngineException, IOException, PagedMediaWriterConfigurationException {
+		testPEF("resource-files/flow-in-footer-input.obfl",
+		        "resource-files/flow-in-footer-expected.pef",
 		        false);
 	}
 	
@@ -24,5 +24,12 @@ public class FlowInFooterTest extends AbstractFormatterEngineTest {
 		testPEF("resource-files/flow-in-footer-with-marker-reference-input.obfl",
 		        "resource-files/flow-in-footer-with-marker-reference-expected.pef",
 		        true);
+	}
+	
+	@Test
+	public void testFlowInHeader() throws LayoutEngineException, IOException, PagedMediaWriterConfigurationException {
+		testPEF("resource-files/flow-in-header-input.obfl",
+		        "resource-files/flow-in-header-expected.pef",
+		        false);
 	}
 }

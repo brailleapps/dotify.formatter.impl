@@ -132,4 +132,6 @@ public abstract class AbstractBlockContentManager implements BlockStatistics {
 	
 	public abstract List<String> getGroupAnchors();
 	
+	public abstract List<String> getGroupIdentifiers();
+	
 }

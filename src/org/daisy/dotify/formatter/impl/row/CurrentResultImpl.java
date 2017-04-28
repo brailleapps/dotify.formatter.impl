@@ -157,6 +157,7 @@ class CurrentResultImpl implements CurrentResult {
 			AggregatedBrailleTranslatorResult abtr = ((AggregatedBrailleTranslatorResult)btr);
 			row.addMarkers(abtr.getMarkers());
 			row.addAnchors(abtr.getAnchors());
+			row.addIdentifiers(abtr.getIdentifiers());
 			abtr.clearPending();
 		}
 	}

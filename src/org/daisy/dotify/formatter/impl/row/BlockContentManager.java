@@ -25,10 +25,10 @@ public class BlockContentManager extends AbstractBlockContentManager {
 	private final SegmentProcessor sp;
 	private int rowIndex;
 	
-	public BlockContentManager(int flowWidth, List<Segment> segments, RowDataProperties rdp, CrossReferenceHandler refs, Context context, FormatterCoreContext fcontext) {
+	public BlockContentManager(String blockId, int flowWidth, List<Segment> segments, RowDataProperties rdp, CrossReferenceHandler refs, Context context, FormatterCoreContext fcontext) {
 		super(flowWidth, rdp, fcontext);
 		this.rows = new ArrayList<>();
-		this.sp = new SegmentProcessor(segments, flowWidth, refs, context, flowWidth - margins.getRightMargin().getContent().length(), margins, fcontext, rdp);
+		this.sp = new SegmentProcessor(blockId, segments, flowWidth, refs, context, flowWidth - margins.getRightMargin().getContent().length(), margins, fcontext, rdp);
 		initFields();
 	}
 	
@@ -137,6 +137,11 @@ public class BlockContentManager extends AbstractBlockContentManager {
 	@Override
 	public List<String> getGroupAnchors() {
 		return sp.getGroupAnchors();
+	}
+
+	@Override
+	public List<String> getGroupIdentifiers() {
+		return sp.getGroupIdentifiers();
 	}
 
 	@Override

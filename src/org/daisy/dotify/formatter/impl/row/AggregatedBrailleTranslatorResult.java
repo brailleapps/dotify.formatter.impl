@@ -3,6 +3,7 @@ package org.daisy.dotify.formatter.impl.row;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.daisy.dotify.api.formatter.Marker;
@@ -18,6 +19,9 @@ import org.daisy.dotify.formatter.impl.segment.MarkerSegment;
  * @author Joel Håkansson
  */
 class AggregatedBrailleTranslatorResult implements BrailleTranslatorResult {
+	
+	private static final Pattern trailingWsBraillePattern = Pattern.compile("[\\s\u2800]+\\z");
+	
 	private final List<Object> results;
 	private int currentIndex;
 	private List<Marker> pendingMarkers;
@@ -69,6 +73,10 @@ class AggregatedBrailleTranslatorResult implements BrailleTranslatorResult {
 			results.add(bts);
 		}
 		
+		boolean isEmpty() {
+			return results.isEmpty();
+		}
+		
 		/**
 		 * Builds an aggregated braille translator result based on the
 		 * state of this builder.
@@ -112,7 +120,11 @@ class AggregatedBrailleTranslatorResult implements BrailleTranslatorResult {
 		String row = "";
 		BrailleTranslatorResult current = computeNext();
 		while (limit > row.length()) {
-			row += current.nextTranslatedRow(limit - row.length(), force);
+			row += current.nextTranslatedRow(limit - row.length(), force && row.isEmpty());
+			if (current.hasNext()) {
+				row = trailingWsBraillePattern.matcher(row).replaceAll("");
+				break;
+			}
 			current = computeNext();
 			if (current == null) {
 				break;

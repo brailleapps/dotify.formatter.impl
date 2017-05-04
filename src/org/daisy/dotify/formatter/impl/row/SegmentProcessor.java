@@ -36,9 +36,8 @@ class SegmentProcessor implements SegmentProcessing {
 	private final ArrayList<Marker> groupMarkers;
 	private final ArrayList<String> groupAnchors;
 	private final ArrayList<String> groupIdentifiers;
-	private AggregatedBrailleTranslatorResult.Builder layoutOrApplyAfterLeader;
+	private AggregatedBrailleTranslatorResult.Builder pending;
 	private String currentLeaderMode;
-	private boolean seenSegmentAfterLeader;
 	private final LeaderManager leaderManager;
 	private ListItem item;
 	private int forceCount;
@@ -74,9 +73,8 @@ class SegmentProcessor implements SegmentProcessing {
 		this.groupMarkers = new ArrayList<>(template.groupMarkers);
 		this.groupIdentifiers = new ArrayList<>(template.groupIdentifiers);
 		this.leaderManager = new LeaderManager(template.leaderManager);
-		this.layoutOrApplyAfterLeader = template.layoutOrApplyAfterLeader==null?null:new AggregatedBrailleTranslatorResult.Builder(template.layoutOrApplyAfterLeader);
+		this.pending = template.pending==null?null:new AggregatedBrailleTranslatorResult.Builder(template.pending);
 		this.currentLeaderMode = template.currentLeaderMode;
-		this.seenSegmentAfterLeader = template.seenSegmentAfterLeader;
 		this.item = template.item;
 		this.forceCount = template.forceCount;
 		this.minLeft = template.minLeft;
@@ -122,9 +120,8 @@ class SegmentProcessor implements SegmentProcessing {
 		segmentIndex = 0;
 		currentRow = null;
 		leaderManager.discardAllLeaders();
-		layoutOrApplyAfterLeader = null;
+		pending = null;
 		currentLeaderMode = null;
-		seenSegmentAfterLeader = false;
 		item = spc.getRdp().getListItem();
 		minLeft = spc.getFlowWidth();
 		minRight = spc.getFlowWidth();
@@ -173,7 +170,7 @@ class SegmentProcessor implements SegmentProcessing {
 		if (cr == null) {
 			if (!hasSegments() && !closed) {
 				closed = true;
-				cr = new CloseResult(spc, layoutLeader());
+				cr = new CloseResult(spc, layoutPending());
 			} else {
 				cr = loadNextSegment().orElse(null);
 			}
@@ -228,7 +225,7 @@ class SegmentProcessor implements SegmentProcessing {
 		switch (s.getSegmentType()) {
 			case NewLine:
 				//flush
-				return Optional.of(new NewLineResult(spc, layoutLeader()));
+				return Optional.of(new NewLineResult(spc, layoutPending()));
 			case Text:
 				return layoutTextSegment((TextSegment)s);
 			case Leader:
@@ -238,14 +235,11 @@ class SegmentProcessor implements SegmentProcessing {
 			case Evaluate:
 				return layoutEvaluate((Evaluate)s);
 			case Marker:
-				applyAfterLeader((MarkerSegment)s);
-				return Optional.empty();
+				return applyMarker((MarkerSegment)s);
 			case Anchor:
-				applyAfterLeader((AnchorSegment)s);
-				return Optional.empty();
+				return applyAnchor((AnchorSegment)s);
 			case Identifier:
-				applyAfterLeader((IdentifierSegment)s);
-				return Optional.empty();
+				return applyIdentifier((IdentifierSegment)s);
 			default:
 				return Optional.empty();
 		}
@@ -293,21 +287,13 @@ class SegmentProcessor implements SegmentProcessing {
 		} else {
 			btr = ts.newResult();
 		}
-		if (leaderManager.hasLeader()) {
-			layoutAfterLeader(btr, mode);
-		} else {
-			CurrentResult cr = new CurrentResultImpl(spc, btr, mode);
-			return Optional.of(cr);
-		}
+		appendToPending(btr, mode);
 		return Optional.empty();
 	}
 	
 	private Optional<CurrentResult> layoutLeaderSegment(LeaderSegment ls) {
 		try {
-			if (leaderManager.hasLeader()) {
-				return layoutLeader();
-			}
-			return Optional.empty();
+			return layoutPending();
 		} finally {
 			leaderManager.addLeader(ls);
 		}
@@ -328,14 +314,7 @@ class SegmentProcessor implements SegmentProcessing {
 					spc.getFormatterContext().getConfiguration().isMarkingCapitalLetters()?txt:txt.toLowerCase()
 					).locale(null).attributes(rs.getTextAttribute(txt.length())).build();
 		}
-		if (leaderManager.hasLeader()) {
-			layoutAfterLeader(spec, null);
-		} else {
-			String mode = null;
-			BrailleTranslatorResult btr = toResult(spec, null);
-			CurrentResult cr = new CurrentResultImpl(spc, btr, mode);
-			return Optional.of(cr);
-		}
+		appendToPending(toResult(spec, null), null);
 		return Optional.empty();
 	}
 	
@@ -348,45 +327,29 @@ class SegmentProcessor implements SegmentProcessing {
 					hyphenate(e.getTextProperties().isHyphenating()).
 					attributes(e.getTextAttribute(txt.length())).
 					build();
-			if (leaderManager.hasLeader()) {
-				layoutAfterLeader(spec, null);
-			} else {
-				String mode = null;
-				BrailleTranslatorResult btr = toResult(spec, mode);
-				CurrentResult cr = new CurrentResultImpl(spc, btr, mode);
-				return Optional.of(cr);
-			}
+			appendToPending(toResult(spec, null), null);
 		}
 		return Optional.empty(); 
 	}
 	
-	private void layoutAfterLeader(Translatable spec, String mode) {
-		layoutAfterLeader(toResult(spec, mode), mode);
-	}
-
-	private void layoutAfterLeader(BrailleTranslatorResult result, String mode) {
-		if (leaderManager.hasLeader()) {
-			if (layoutOrApplyAfterLeader == null) {
-				layoutOrApplyAfterLeader = new AggregatedBrailleTranslatorResult.Builder();
-				// use the mode of the first following segment to translate the leader pattern (or
-				// the mode of the first preceding segment)
-				if (!seenSegmentAfterLeader) {
-					currentLeaderMode = mode;
-					seenSegmentAfterLeader = true;
-				}
-			}
-			layoutOrApplyAfterLeader.add(result);
-		} else {
-			throw new RuntimeException("Error in code.");
+	private void appendToPending(BrailleTranslatorResult result, String mode) {
+		if (pending == null) {
+			pending = new AggregatedBrailleTranslatorResult.Builder();
 		}
+		// use the mode of the first following segment to translate the leader pattern (or
+		// the mode of the first preceding segment)
+		if (pending.isEmpty()) {
+			currentLeaderMode = mode;
+		}
+		pending.add(result);
 	}
 	
-	private void applyAfterLeader(MarkerSegment marker) {
-		if (leaderManager.hasLeader()) {
-			if (layoutOrApplyAfterLeader == null) {
-				layoutOrApplyAfterLeader = new AggregatedBrailleTranslatorResult.Builder();
+	private Optional<CurrentResult> applyMarker(MarkerSegment marker) {
+		if (leaderManager.hasLeader() || (pending != null && !pending.isEmpty())) {
+			if (pending == null) {
+				pending = new AggregatedBrailleTranslatorResult.Builder();
 			}
-			layoutOrApplyAfterLeader.add(marker);
+			pending.add(marker);
 		} else {
 			if (currentRow==null) {
 				groupMarkers.add(marker);
@@ -394,14 +357,15 @@ class SegmentProcessor implements SegmentProcessing {
 				currentRow.addMarker(marker);
 			}
 		}
+		return Optional.empty();
 	}
 	
-	private void applyAfterLeader(final AnchorSegment anchor) {
-		if (leaderManager.hasLeader()) {
-			if (layoutOrApplyAfterLeader == null) {
-				layoutOrApplyAfterLeader = new AggregatedBrailleTranslatorResult.Builder();
+	private Optional<CurrentResult> applyAnchor(final AnchorSegment anchor) {
+		if (leaderManager.hasLeader() || (pending != null && !pending.isEmpty())) {
+			if (pending == null) {
+				pending = new AggregatedBrailleTranslatorResult.Builder();
 			}
-			layoutOrApplyAfterLeader.add(anchor);
+			pending.add(anchor);
 		} else {
 			if (currentRow==null) {
 				groupAnchors.add(anchor.getReferenceID());
@@ -409,14 +373,15 @@ class SegmentProcessor implements SegmentProcessing {
 				currentRow.addAnchor(anchor.getReferenceID());
 			}
 		}
+		return Optional.empty();
 	}
 	
-	private void applyAfterLeader(final IdentifierSegment identifier) {
-		if (leaderManager.hasLeader()) {
-			if (layoutOrApplyAfterLeader == null) {
-				layoutOrApplyAfterLeader = new AggregatedBrailleTranslatorResult.Builder();
+	private Optional<CurrentResult> applyIdentifier(final IdentifierSegment identifier) {
+		if (leaderManager.hasLeader() || (pending != null && !pending.isEmpty())) {
+			if (pending == null) {
+				pending = new AggregatedBrailleTranslatorResult.Builder();
 			}
-			layoutOrApplyAfterLeader.add(identifier);
+			pending.add(identifier);
 		} else {
 			if (currentRow==null) {
 				groupIdentifiers.add(identifier.getName());
@@ -424,27 +389,28 @@ class SegmentProcessor implements SegmentProcessing {
 				currentRow.addIdentifier(identifier.getName());
 			}
 		}
+		return Optional.empty();
 	}
 	
-	private Optional<CurrentResult> layoutLeader() {
-		if (leaderManager.hasLeader()) {
-			// layout() sets currentLeader to null
+	private Optional<CurrentResult> layoutPending() {
+		if ((pending == null || pending.isEmpty()) && !leaderManager.hasLeader() && !hasListItem()) {
+			return Optional.empty();
+		} else {
 			BrailleTranslatorResult btr;
 			String mode;
-			if (layoutOrApplyAfterLeader == null) {
+			if (pending == null || pending.isEmpty()) {
 				btr = toResult("");
 				mode = null;
 			} else {
-				btr = layoutOrApplyAfterLeader.build();
+				btr = pending.build();
 				mode = currentLeaderMode;
-				
-				layoutOrApplyAfterLeader = null;
-				seenSegmentAfterLeader = false;
+				pending = null;
 			}
+			if (!leaderManager.hasLeader())
+				leaderManager.addLeader(null);
 			CurrentResult cr = new CurrentResultImpl(spc, btr, mode);
 			return Optional.of(cr);
 		}
-		return Optional.empty();
 	}
 
 	private BrailleTranslatorResult toResult(String c) {

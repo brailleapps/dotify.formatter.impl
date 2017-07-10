@@ -243,10 +243,15 @@ public class PageSequenceBuilder2 {
 	}
 	
 	private void addRows(List<RowGroup> head, PageImpl p) {
+		int i = head.size();
 		for (RowGroup rg : head) {
+			i--;
 			addProperties(p, rg);
-			for (RowImpl r : rg.getRows()) { 
-				if (r.shouldAdjustForMargin()) {
+			List<RowImpl> rows = rg.getRows();
+			int j = rows.size();
+			for (RowImpl r : rows) {
+				j--;
+				if (r.shouldAdjustForMargin() || (i == 0 && j == 0)) {
 					// clone the row as not to append the margins twice
 					RowImpl.Builder b = new RowImpl.Builder(r);
 					MarkerRef rf = r::hasMarkerWithName;
@@ -260,6 +265,10 @@ public class PageSequenceBuilder2 {
 						margin = margin.append(getMarginRegionValue(mr, rf, true));
 					}
 					b.rightMargin(margin);
+					if (i == 0 && j == 0) {
+						// this is the last row; set row spacing to 1 because this is how sph treated it
+						b.rowSpacing(null);
+					}
 					p.newRow(b.build());
 				} else {
 					p.newRow(r);

@@ -31,6 +31,7 @@ public class SheetDataSource implements SplitPointDataSource<Sheet> {
 	private final FormatterContext context;
 	//Input data
 	private final DefaultContext rcontext;
+	private final Integer volumeGroup;
 	private final List<BlockSequence> seqsIterator;
 	private final int sheetOffset;
 	//Local state
@@ -47,10 +48,11 @@ public class SheetDataSource implements SplitPointDataSource<Sheet> {
 	private List<Sheet> sheetBuffer;
 
 
-	public SheetDataSource(PageStruct struct, FormatterContext context, DefaultContext rcontext, List<BlockSequence> seqsIterator) {
+	public SheetDataSource(PageStruct struct, FormatterContext context, DefaultContext rcontext, Integer volumeGroup, List<BlockSequence> seqsIterator) {
 		this.struct = struct;
 		this.context = context;
 		this.rcontext = rcontext;
+		this.volumeGroup = volumeGroup;
 		this.seqsIterator = seqsIterator;
 		this.sheetBuffer = new ArrayList<>();
 		this.volBreakAllowed = true;
@@ -73,6 +75,7 @@ public class SheetDataSource implements SplitPointDataSource<Sheet> {
 		this.struct = new PageStruct(template.struct);
 		this.context = template.context;
 		this.rcontext = template.rcontext;
+		this.volumeGroup = template.volumeGroup;
 		this.seqsIterator = template.seqsIterator;
 		this.seqsIndex = template.seqsIndex;
 		this.psb = PageSequenceBuilder2.copyUnlessNull(template.psb);
@@ -200,7 +203,7 @@ public class SheetDataSource implements SplitPointDataSource<Sheet> {
 					}
 					volBreakAllowed = true;
 					s = new Sheet.Builder(sectionProperties);
-					si = new SheetIdentity(rcontext.getSpace(), rcontext.getCurrentVolume(), sheetBuffer.size()+sheetOffset);
+					si = new SheetIdentity(rcontext.getSpace(), rcontext.getCurrentVolume(), volumeGroup, sheetBuffer.size()+sheetOffset);
 					sheetIndex++;
 				}
 				PageImpl p = psb.nextPage(initialPageOffset);
@@ -243,7 +246,7 @@ public class SheetDataSource implements SplitPointDataSource<Sheet> {
 		int i = 0;
 		//TODO: simplify this?
 		for (int x = start; i < p && x > 0; x--) {
-			SheetIdentity si = new SheetIdentity(rcontext.getSpace(), rcontext.getCurrentVolume(), x);
+			SheetIdentity si = new SheetIdentity(rcontext.getSpace(), rcontext.getCurrentVolume(), volumeGroup, x);
 			rcontext.getRefs().keepBreakable(si, false);
 			i++;
 		}

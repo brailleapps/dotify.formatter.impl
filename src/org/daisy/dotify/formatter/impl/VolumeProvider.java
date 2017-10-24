@@ -247,7 +247,7 @@ public class VolumeProvider {
 					break;
 				}
 			}
-			List<Sheet> ret = prepareToPaginate(ib, c).getRemaining();
+			List<Sheet> ret = prepareToPaginate(ib, c, null).getRemaining();
 			SectionBuilder sb = new SectionBuilder();
 			for (Sheet ps : ret) {
 				for (PageImpl p : ps.getPages()) {
@@ -263,8 +263,8 @@ public class VolumeProvider {
 		}
 	}
 	
-	private SplitPointDataSource<Sheet> prepareToPaginate(List<BlockSequence> fs, DefaultContext rcontext) throws PaginatorException {
-		return prepareToPaginate(new PageStruct(), rcontext, fs);
+	private SplitPointDataSource<Sheet> prepareToPaginate(List<BlockSequence> fs, DefaultContext rcontext, Integer volumeGroup) throws PaginatorException {
+		return prepareToPaginate(new PageStruct(), rcontext, volumeGroup, fs);
 	}
 	
 	private Iterable<SplitPointDataSource<Sheet>> prepareToPaginateWithVolumeGroups(List<BlockSequence> fs, DefaultContext rcontext) {
@@ -293,14 +293,15 @@ public class VolumeProvider {
 
 	private List<SplitPointDataSource<Sheet>> prepareToPaginateWithVolumeGroups(PageStruct struct, DefaultContext rcontext, Iterable<List<BlockSequence>> volGroups) throws PaginatorException {
 		List<SplitPointDataSource<Sheet>> ret = new ArrayList<>();
+		int i = 0;
 		for (List<BlockSequence> glist : volGroups) {
-			ret.add(prepareToPaginate(struct, rcontext, glist));
+			ret.add(prepareToPaginate(struct, rcontext, i++, glist));
 		}
 		return ret;
 	}
 	
-	private SplitPointDataSource<Sheet> prepareToPaginate(PageStruct struct, DefaultContext rcontext, List<BlockSequence> seqs) throws PaginatorException {
-		return new SheetDataSource(struct, fcontext, rcontext, seqs);
+	private SplitPointDataSource<Sheet> prepareToPaginate(PageStruct struct, DefaultContext rcontext, Integer volumeGroup, List<BlockSequence> seqs) throws PaginatorException {
+		return new SheetDataSource(struct, fcontext, rcontext, volumeGroup, seqs);
 	}
 	
 	/**

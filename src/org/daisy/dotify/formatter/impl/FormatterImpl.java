@@ -132,7 +132,7 @@ class FormatterImpl implements Formatter {
 
 		ArrayList<VolumeImpl> ret;
 
-		int maxIterations = 25;
+		int maxIterations = 50;
 		for (int j=1;j<=maxIterations;j++) {
 			try {
 				ret = new ArrayList<>();

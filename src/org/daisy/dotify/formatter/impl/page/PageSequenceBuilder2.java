@@ -50,7 +50,7 @@ public class PageSequenceBuilder2 {
 	private boolean force;
 	private SplitPointDataSource<RowGroup> data;
 
-	private int keepNextSheets;
+	public int keepNextSheets;
 	private int pageCount = 0;
 	private int dataGroupsIndex;
 

@@ -47,6 +47,7 @@ public class SheetDataSource implements SplitPointDataSource<Sheet> {
 	//Output buffer
 	private List<Sheet> sheetBuffer;
 
+	private int keepNextSheets = 0;
 
 	public SheetDataSource(PageStruct struct, FormatterContext context, DefaultContext rcontext, Integer volumeGroup, List<BlockSequence> seqsIterator) {
 		this.struct = struct;
@@ -186,6 +187,10 @@ public class SheetDataSource implements SplitPointDataSource<Sheet> {
 					 initialPageOffset = struct.getDefaultPageOffset();
 				}
 				psb = new PageSequenceBuilder2(struct.getPageCount(), bs.getLayoutMaster(), initialPageOffset, bs, context, rcontext, seqsIndex);
+				if (keepNextSheets > 0) {
+					psb.keepNextSheets = keepNextSheets;
+					keepNextSheets = 0;
+				}
 				sectionProperties = bs.getLayoutMaster().newSectionProperties();
 				s = null;
 				si = null;
@@ -209,18 +214,12 @@ public class SheetDataSource implements SplitPointDataSource<Sheet> {
 				PageImpl p = psb.nextPage(initialPageOffset);
 				struct.increasePageCount();
 				s.avoidVolumeBreakAfterPriority(p.getAvoidVolumeBreakAfter());
-				if (!psb.hasNext()) {
-					s.avoidVolumeBreakAfterPriority(null);
-					//Don't get or store this value in crh as it is transient and not a property of the sheet context
-					s.breakable(true);
-				} else {
-					boolean br = rcontext.getRefs().getBreakable(si);
-					//TODO: the following is a low effort way of giving existing uses of non-breakable units a high priority, but it probably shouldn't be done this way
-					if (!br) {
-						s.avoidVolumeBreakAfterPriority(1);
-					}
-					s.breakable(br);
+				boolean br = rcontext.getRefs().getBreakable(si);
+				//TODO: the following is a low effort way of giving existing uses of non-breakable units a high priority, but it probably shouldn't be done this way
+				if (!br) {
+					s.avoidVolumeBreakAfterPriority(1);
 				}
+				s.breakable(br);
 
 				setPreviousSheet(si.getSheetIndex()-1, Math.min(p.keepPreviousSheets(), sheetIndex-1), rcontext);
 				volBreakAllowed &= p.allowsVolumeBreak();
@@ -229,6 +228,14 @@ public class SheetDataSource implements SplitPointDataSource<Sheet> {
 				}
 				s.add(p);
 				pageIndex++;
+				if (!psb.hasNext()) {
+					keepNextSheets = psb.keepNextSheets;
+					if (keepNextSheets > 0 && (!sectionProperties.duplex() || pageIndex % 2 == 1)) {
+						keepNextSheets--;
+						volBreakAllowed = false;
+					}
+					rcontext.getRefs().keepBreakable(si, volBreakAllowed);
+				}
 			}
 			if (!psb.hasNext()) {
 				rcontext.getRefs().setSequenceScope(new DocumentSpace(rcontext.getSpace(), rcontext.getCurrentVolume()), seqsIndex, psb.getGlobalStartIndex(), psb.getToIndex());

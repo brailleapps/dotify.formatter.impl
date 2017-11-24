@@ -101,7 +101,7 @@ public class VolumeProvider {
 			for (SplitPointDataSource<Sheet> data : allUnits) {
 				SheetGroup g = groups.add();
 				g.setUnits(data);
-				g.getSplitter().updateSheetCount(data.getRemaining().size());
+				g.getSplitter().updateSheetCount(data.getRemaining().size(), data.getRemaining().size());
 				volCount += g.getSplitter().getVolumeCount();
 			}
 			crh.setVolumeCount(volCount);
@@ -164,7 +164,7 @@ public class VolumeProvider {
 				double priorityPenalty = 0;
 				int sheetCount = index + 1;
 				// Calculates a maximum offset based on the maximum possible number of sheets
-				double range = splitterMax * 0.2;
+				double range = splitterMax * 0.4;
 				if (!units.isEmpty()) {
 					Integer avoid = lastSheet.getAvoidVolumeBreakAfterPriority();
 					if (avoid!=null) {
@@ -225,7 +225,27 @@ public class VolumeProvider {
 			sb.addSheet(sheet);
 		}
 		groups.currentGroup().setSheetCount(groups.currentGroup().getSheetCount() + contents.size());
-		groups.nextVolume();
+		if (groups.currentGroup().getUnits().isEmpty()) {
+			PageStruct startOfNextGroup; {
+				if (data instanceof SheetDataSource) {
+					startOfNextGroup = new PageStruct(((SheetDataSource)data).struct);
+				} else {
+					startOfNextGroup = null;
+				}
+			}
+			groups.nextVolume();
+			if (startOfNextGroup != null) {
+				try {
+					SplitPointDataSource<Sheet> spd = groups.currentGroup().getUnits();
+					if (spd instanceof SheetDataSource) {
+						((SheetDataSource)spd).struct = startOfNextGroup;
+					}
+				} catch (IndexOutOfBoundsException e) {
+				}
+			}
+		} else {
+			groups.nextVolume();
+		}
 		return sb;
 	}
 	
@@ -247,7 +267,7 @@ public class VolumeProvider {
 					break;
 				}
 			}
-			List<Sheet> ret = prepareToPaginate(ib, c).getRemaining();
+			List<Sheet> ret = prepareToPaginate(ib, c, null).getRemaining();
 			SectionBuilder sb = new SectionBuilder();
 			for (Sheet ps : ret) {
 				for (PageImpl p : ps.getPages()) {
@@ -263,8 +283,8 @@ public class VolumeProvider {
 		}
 	}
 	
-	private SplitPointDataSource<Sheet> prepareToPaginate(List<BlockSequence> fs, DefaultContext rcontext) throws PaginatorException {
-		return prepareToPaginate(new PageStruct(), rcontext, fs);
+	private SplitPointDataSource<Sheet> prepareToPaginate(List<BlockSequence> fs, DefaultContext rcontext, Integer volumeGroup) throws PaginatorException {
+		return prepareToPaginate(new PageStruct(), rcontext, volumeGroup, fs);
 	}
 	
 	private Iterable<SplitPointDataSource<Sheet>> prepareToPaginateWithVolumeGroups(List<BlockSequence> fs, DefaultContext rcontext) {
@@ -293,14 +313,15 @@ public class VolumeProvider {
 
 	private List<SplitPointDataSource<Sheet>> prepareToPaginateWithVolumeGroups(PageStruct struct, DefaultContext rcontext, Iterable<List<BlockSequence>> volGroups) throws PaginatorException {
 		List<SplitPointDataSource<Sheet>> ret = new ArrayList<>();
+		int i = 0;
 		for (List<BlockSequence> glist : volGroups) {
-			ret.add(prepareToPaginate(struct, rcontext, glist));
+			ret.add(prepareToPaginate(struct, rcontext, i++, glist));
 		}
 		return ret;
 	}
 	
-	private SplitPointDataSource<Sheet> prepareToPaginate(PageStruct struct, DefaultContext rcontext, List<BlockSequence> seqs) throws PaginatorException {
-		return new SheetDataSource(struct, fcontext, rcontext, seqs);
+	private SplitPointDataSource<Sheet> prepareToPaginate(PageStruct struct, DefaultContext rcontext, Integer volumeGroup, List<BlockSequence> seqs) throws PaginatorException {
+		return new SheetDataSource(struct, fcontext, rcontext, volumeGroup, seqs);
 	}
 	
 	/**
@@ -309,20 +330,19 @@ public class VolumeProvider {
 	 * @return returns true if the volumes can be accepted, false otherwise  
 	 */
 	boolean done() {
+		if (groups.hasNext()) {
+			if (logger.isLoggable(Level.FINE)) {
+				logger.fine("There is more content (sheets: " + groups.countRemainingSheets() + ", pages: " + groups.countRemainingPages() + ")");
+			}
+		}
+		// this changes the value of groups.getVolumeCount() to the newly computed
+		// required number of volume based on groups.countTotalSheets()
 		groups.updateAll();
 		crh.commitBreakable();
 		crh.trimPageDetails();
 		crh.setVolumeCount(groups.getVolumeCount());
 		crh.setSheetsInDocument(groups.countTotalSheets());
 		//crh.setPagesInDocument(value);
-		if (groups.hasNext()) {
-			if (logger.isLoggable(Level.FINE)) {
-				logger.fine("There is more content (sheets: " + groups.countRemainingSheets() + ", pages: " + groups.countRemainingPages() + ")");
-			}
-			if (!crh.isDirty() && j>1) {
-				groups.adjustVolumeCount();
-			}
-		}
 		if (!crh.isDirty() && !groups.hasNext()) {
 			return true;
 		} else {

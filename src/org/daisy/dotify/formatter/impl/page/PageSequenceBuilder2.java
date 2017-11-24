@@ -17,6 +17,7 @@ import org.daisy.dotify.common.split.SplitPointHandler;
 import org.daisy.dotify.common.split.SplitPointSpecification;
 import org.daisy.dotify.common.split.StandardSplitOption;
 import org.daisy.dotify.common.split.Supplements;
+import org.daisy.dotify.formatter.impl.common.FormatterCoreContext;
 import org.daisy.dotify.formatter.impl.core.Block;
 import org.daisy.dotify.formatter.impl.core.BlockContext;
 import org.daisy.dotify.formatter.impl.core.ContentCollectionImpl;
@@ -26,7 +27,6 @@ import org.daisy.dotify.formatter.impl.core.PaginatorException;
 import org.daisy.dotify.formatter.impl.row.AbstractBlockContentManager;
 import org.daisy.dotify.formatter.impl.row.MarginProperties;
 import org.daisy.dotify.formatter.impl.row.RowImpl;
-import org.daisy.dotify.formatter.impl.search.CrossReferenceHandler;
 import org.daisy.dotify.formatter.impl.search.DefaultContext;
 import org.daisy.dotify.formatter.impl.search.DocumentSpace;
 import org.daisy.dotify.formatter.impl.search.PageDetails;
@@ -50,7 +50,7 @@ public class PageSequenceBuilder2 {
 	private boolean force;
 	private SplitPointDataSource<RowGroup> data;
 
-	private int keepNextSheets;
+	public int keepNextSheets;
 	private int pageCount = 0;
 	private int dataGroupsIndex;
 
@@ -261,17 +261,16 @@ public class PageSequenceBuilder2 {
 					// clone the row as not to append the margins twice
 					RowImpl.Builder b = new RowImpl.Builder(r);
 					if (r.shouldAdjustForMargin()) {
-						MarkerRef rf = r::hasMarkerWithName;
-						MarginProperties margin = r.getLeftMargin();
-						for (MarginRegion mr : p.getPageTemplate().getLeftMarginRegion()) {
-							margin = getMarginRegionValue(mr, rf, false).append(margin);
-						}
-						b.leftMargin(margin);
-						margin = r.getRightMargin();
-						for (MarginRegion mr : p.getPageTemplate().getRightMarginRegion()) {
-							margin = margin.append(getMarginRegionValue(mr, rf, true));
-						}
-						b.rightMargin(margin);
+						b.leftMargin(
+							p.getPageTemplate().getLeftMarginRegion()
+								.stream()
+								.map(mr->getMarginRegionValue(context, mr, r::hasMarkerWithName, false))
+								.reduce(r.getLeftMargin(), (mr, mf) -> mr.append(mf)));
+						b.rightMargin(
+							p.getPageTemplate().getRightMarginRegion()
+								.stream()
+								.map(mr -> getMarginRegionValue(context, mr, r::hasMarkerWithName, true))
+								.reduce(r.getRightMargin(), (mr, mf) -> mr.append(mf)));						
 					}
 					if (i == 0 && j == 0) {
 						// this is the last row; set row spacing to 1 because this is how sph treated it
@@ -306,7 +305,7 @@ public class PageSequenceBuilder2 {
 		boolean hasMarkerWithName(String name);
 	}
 	
-	private MarginProperties getMarginRegionValue(MarginRegion mr, MarkerRef r, boolean rightSide) throws PaginatorException {
+	private static MarginProperties getMarginRegionValue(FormatterCoreContext context, MarginRegion mr, MarkerRef r, boolean rightSide) throws PaginatorException {
 		String ret = "";
 		int w = mr.getWidth();
 		if (mr instanceof MarkerIndicatorRegion) {
@@ -338,7 +337,7 @@ public class PageSequenceBuilder2 {
 		}
 	}
 	
-	private String firstMarkerForRow(MarkerRef r, MarkerIndicatorRegion mrr) {
+	private static String firstMarkerForRow(MarkerRef r, MarkerIndicatorRegion mrr) {
 		return mrr.getIndicators().stream()
 				.filter(mi -> r.hasMarkerWithName(mi.getName()))
 				.map(mi -> mi.getIndicator())

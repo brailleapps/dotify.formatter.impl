@@ -19,7 +19,8 @@ public final class MarginProperties {
 	}
 	
 	/**
-	 * Creates a new margin with the supplied margin appended. 
+	 * Creates a new margin with the supplied margin appended.
+	 * This operation is associative.
 	 * @param mp the margin to append
 	 * @return the new margin
 	 */

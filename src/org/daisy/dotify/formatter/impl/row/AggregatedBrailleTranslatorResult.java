@@ -3,7 +3,9 @@ package org.daisy.dotify.formatter.impl.row;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.regex.Pattern;
+import java.util.Stack;
 import java.util.stream.Collectors;
 
 import org.daisy.dotify.api.formatter.Marker;
@@ -115,20 +117,102 @@ class AggregatedBrailleTranslatorResult implements BrailleTranslatorResult {
 		}).collect(Collectors.toList());
 	}
 
+	private static class State {
+		final int rowSize;
+		final int currentIndex;
+		final int pendingMarkersSize;
+		final int pendingAnchorsSize;
+		final int pendingIdentifiersSize;
+		State(int rowSize, int currentIndex, int pendingMarkersSize, int pendingAnchorsSize, int pendingIdentifiersSize) {
+			this.rowSize = rowSize;
+			this.currentIndex = currentIndex;
+			this.pendingMarkersSize = pendingMarkersSize;
+			this.pendingAnchorsSize = pendingAnchorsSize;
+			this.pendingIdentifiersSize = pendingIdentifiersSize;
+		}
+		static State save(AggregatedBrailleTranslatorResult btr, String row) {
+			return new State(row.length(),
+			                 btr.currentIndex,
+			                 btr.pendingMarkers.size(),
+			                 btr.pendingAnchors.size(),
+			                 btr.pendingIdentifiers.size());
+		}
+		String restore(AggregatedBrailleTranslatorResult btr, String row) {
+			row = row.substring(0, rowSize);
+			btr.currentIndex = currentIndex;
+			btr.pendingMarkers.subList(pendingMarkersSize, btr.pendingMarkers.size()).clear();
+			btr.pendingAnchors.subList(pendingAnchorsSize, btr.pendingAnchors.size()).clear();
+			btr.pendingIdentifiers.subList(pendingIdentifiersSize, btr.pendingIdentifiers.size()).clear();
+			return row;
+		}
+	}
+
+	private static void failIf(boolean test) {
+		if (test) {
+			throw new RuntimeException("coding error");
+		}
+	}
+
 	@Override
 	public String nextTranslatedRow(int limit, boolean force, boolean wholeWordsOnly) {
+		String row = nextTranslatedRowInner(limit, false, wholeWordsOnly);
+		if (force && row.isEmpty())
+			row = nextTranslatedRowInner(limit, true, wholeWordsOnly);
+		return row;
+	}
+	
+	private String nextTranslatedRowInner(int limit, boolean force, boolean wholeWordsOnly) {
 		String row = "";
+		Stack<State> backup = new Stack<>();
 		BrailleTranslatorResult current = computeNext();
-		while (limit > row.length()) {
-			row += current.nextTranslatedRow(limit - row.length(), force && row.isEmpty());
-			if (current.hasNext()) {
-				row = trailingWsBraillePattern.matcher(row).replaceAll("");
-				break;
+		if (current == null)
+			throw new NoSuchElementException();
+		o: while (limit > row.length()) {
+			failIf(current == null || !current.hasNext());
+			if (current.countRemaining() < limit - row.length()) {
+				String remainder = current.getTranslatedRemainder();
+				failIf(remainder.isEmpty());
+				backup.push(State.save(this, row));
+				row += remainder;
+				currentIndex++;
+				current = computeNext();
+				if (current == null) {
+					break; // everything fits on a line; return
+				} // there is more content; try fitting the next segment
+			} else { // segment does not fit on the line, try breaking it
+				while (true) {
+					String r = current.nextTranslatedRow(limit - row.length(), force, wholeWordsOnly);
+					if (!r.isEmpty()) {
+						row += r;
+						break o; // segment was broken; return
+					} else if (!current.hasNext()) {
+						// The BrailleTranslatorResult wrongly indicated that it had more rows. Not sure whether this is
+						// an error? Just ignore for now.
+						current = computeNext();
+						failIf(current == null); // if everything would fit on a line we would have detected it already
+						// there is more content, try breaking the next segment
+					} else {
+						if (force) {
+							throw new RuntimeException("corrupt BrailleTranslatorResult: " + current + ": "
+							                           + "hasNext() is true but nextTranslatedRow("+ (limit - row.length()) + ", true)"
+							                           + " returns empty string");
+						}
+						if (backup.isEmpty()) {
+							failIf(!row.isEmpty());
+							break o; // return empty row
+						} else {
+							failIf(row.isEmpty());
+							row = backup.pop().restore(this, row); // backup to the previous segment
+							current = computeNext();
+							failIf(current == null);
+							// try breaking the previous segment
+						}
+					}
+				}
 			}
-			current = computeNext();
-			if (current == null) {
-				break;
-			}
+		}
+		if (hasNext()) {
+			row = trailingWsBraillePattern.matcher(row).replaceAll("");
 		}
 		return row;
 	}

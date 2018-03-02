@@ -9,6 +9,7 @@ import org.daisy.dotify.api.formatter.Marker;
 import org.daisy.dotify.api.translator.BrailleTranslatorResult;
 import org.daisy.dotify.api.translator.UnsupportedMetricException;
 import org.daisy.dotify.formatter.impl.segment.AnchorSegment;
+import org.daisy.dotify.formatter.impl.segment.IdentifierSegment;
 import org.daisy.dotify.formatter.impl.segment.MarkerSegment;
 
 /**
@@ -21,6 +22,7 @@ class AggregatedBrailleTranslatorResult implements BrailleTranslatorResult {
 	private int currentIndex;
 	private List<Marker> pendingMarkers;
 	private List<String> pendingAnchors;
+	private List<String> pendingIdentifiers;
 	
 	/**
 	 * Provides a builder for an aggregated braille translator result.
@@ -52,6 +54,14 @@ class AggregatedBrailleTranslatorResult implements BrailleTranslatorResult {
 		}
 		
 		/**
+		 * Adds an identifier segment to the aggregated result.
+		 * @param as the identifier segment to add
+		 */
+		void add(IdentifierSegment is) {
+			results.add(is);
+		}
+		
+		/**
 		 * Adds a braille translator result to the aggregated result.
 		 * @param bts the translator result to add
 		 */
@@ -75,6 +85,7 @@ class AggregatedBrailleTranslatorResult implements BrailleTranslatorResult {
 		this.currentIndex = 0;
 		this.pendingMarkers = new ArrayList<>();
 		this.pendingAnchors = new ArrayList<>();
+		this.pendingIdentifiers = new ArrayList<>();
 	}
 	
 	private AggregatedBrailleTranslatorResult(AggregatedBrailleTranslatorResult template) {
@@ -82,6 +93,7 @@ class AggregatedBrailleTranslatorResult implements BrailleTranslatorResult {
 		this.currentIndex = template.currentIndex;
 		this.pendingMarkers = new ArrayList<>(template.pendingMarkers);
 		this.pendingAnchors = new ArrayList<>(template.pendingAnchors);
+		this.pendingIdentifiers = new ArrayList<>(template.pendingIdentifiers);
 	}
 	
 	private static List<Object> copyResults(List<?> inputs) {
@@ -121,6 +133,8 @@ class AggregatedBrailleTranslatorResult implements BrailleTranslatorResult {
 				pendingMarkers.add((MarkerSegment)o);
 			} else if (o instanceof AnchorSegment) {
 				pendingAnchors.add(((AnchorSegment)o).getReferenceID());
+			} else if (o instanceof IdentifierSegment) {
+				pendingIdentifiers.add(((IdentifierSegment)o).getName());
 			} else {
 				throw new RuntimeException("coding error");
 			}
@@ -166,9 +180,14 @@ class AggregatedBrailleTranslatorResult implements BrailleTranslatorResult {
 		return Collections.unmodifiableList(pendingAnchors);
 	}
 	
+	List<String> getIdentifiers() {
+		return Collections.unmodifiableList(pendingIdentifiers);
+	}
+	
 	void clearPending() {
 		pendingMarkers.clear();
 		pendingAnchors.clear();
+		pendingIdentifiers.clear();
 	}
 
 	@Override

@@ -123,6 +123,11 @@ class VolumeContentBuilderImpl extends Stack<VolumeSequence> implements VolumeCo
 	}
 
 	@Override
+	public void insertIdentifier(String id) {
+		current().insertIdentifier(id);
+	}
+
+	@Override
 	public void insertLeader(Leader leader) {
 		current().insertLeader(leader);
 	}

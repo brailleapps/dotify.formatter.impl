@@ -163,6 +163,9 @@ public class PageSequenceBuilder2 {
 	{
 		PageImpl ret = nextPageInner(pageNumberOffset, hyphenateLastLine, transitionContent);
 		blockContext.getRefs().keepPageDetails(ret.getDetails());
+		for (String id : ret.getIdentifiers()) {
+			blockContext.getRefs().setPageNumber(id, ret.getPageNumber());
+		}
 		//This is for pre/post volume contents, where the volume number is known
 		if (blockContext.getCurrentVolume()!=null) {
 			for (String id : ret.getIdentifiers()) {
@@ -459,10 +462,7 @@ public class PageSequenceBuilder2 {
 	}
 	
 	private void addProperties(PageImpl p, RowGroup rg) {
-		if (rg.getIdentifier()!=null) {
-			blockContext.getRefs().setPageNumber(rg.getIdentifier(), p.getPageNumber());
-			p.addIdentifier(rg.getIdentifier());
-		}
+		p.addIdentifiers(rg.getIdentifiers());
 		p.addMarkers(rg.getMarkers());
 		//TODO: addGroupAnchors
 		keepNextSheets = Math.max(rg.getKeepWithNextSheets(), keepNextSheets);

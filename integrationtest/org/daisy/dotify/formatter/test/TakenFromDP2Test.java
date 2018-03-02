@@ -206,8 +206,6 @@ public class TakenFromDP2Test extends AbstractFormatterEngineTest {
 		testPEF("resource-files/dp2/page-number-backward-reference-input.obfl",
 		        "resource-files/dp2/page-number-backward-reference-expected.pef", false);
 	}
-	@Ignore // reference (<page-number ref-id="foo">) to inline element (<span id="foo">)
-	        // not sure whether this is a bug?
 	@Test
 	public void testPageNumberReferenceSpan() throws LayoutEngineException, IOException, PagedMediaWriterConfigurationException {
 		testPEF("resource-files/dp2/page-number-reference-span-input.obfl",

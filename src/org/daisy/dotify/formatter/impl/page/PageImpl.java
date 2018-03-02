@@ -111,6 +111,7 @@ public class PageImpl implements Page {
 		finalRows.addRow(r);
 		getDetails().getMarkers().addAll(r.getMarkers());
 		anchors.addAll(r.getAnchors());
+		identifiers.addAll(r.getIdentifiers());
 	}
 	
 	void addMarkers(List<Marker> m) {
@@ -121,8 +122,8 @@ public class PageImpl implements Page {
 		return anchors;
 	}
 	
-	void addIdentifier(String id) {
-		identifiers.add(id);
+	void addIdentifiers(List<String> ids) {
+		identifiers.addAll(ids);
 	}
 	
 	public List<String> getIdentifiers() {

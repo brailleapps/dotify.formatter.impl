@@ -50,7 +50,8 @@ class RowGroupProvider {
 				g.getRowDataProperties().getWidows(), 
 				bc.getRefs().getRowCount(g.getBlockAddress()));
 		this.otherData = !bc.getRefs().getGroupAnchors(g.getBlockAddress()).isEmpty()
-				|| !bc.getRefs().getGroupMarkers(g.getBlockAddress()).isEmpty() || !"".equals(g.getIdentifier())
+				|| !bc.getRefs().getGroupMarkers(g.getBlockAddress()).isEmpty()
+				|| !bc.getRefs().getGroupIdentifiers(g.getBlockAddress()).isEmpty()
 				|| g.getKeepWithNextSheets() > 0 || g.getKeepWithPreviousSheets() > 0;
 		this.keepWithNext = keepWithNext;
 	}
@@ -78,6 +79,7 @@ class RowGroupProvider {
 	void close() {
 		bc.getRefs().setGroupAnchors(g.getBlockAddress(), bcm.getGroupAnchors());
 		bc.getRefs().setGroupMarkers(g.getBlockAddress(), bcm.getGroupMarkers());
+		bc.getRefs().setGroupIdentifiers(g.getBlockAddress(), bcm.getGroupIdentifiers());
 	}
 	
 	BlockStatistics getBlockStatistics() {
@@ -172,11 +174,9 @@ class RowGroupProvider {
 	}
 	
 	private static RowGroup.Builder setPropertiesForFirstContentRowGroup(RowGroup.Builder rgb, CrossReferenceHandler crh, Block g) {
-		if (!"".equals(g.getIdentifier())) { 
-			rgb.identifier(g.getIdentifier());
-		}
 		return rgb.markers(crh.getGroupMarkers(g.getBlockAddress()))
 			.anchors(crh.getGroupAnchors(g.getBlockAddress()))
+			.identifiers(crh.getGroupIdentifiers(g.getBlockAddress()))
 			.keepWithNextSheets(g.getKeepWithNextSheets())
 			.keepWithPreviousSheets(g.getKeepWithPreviousSheets());
 	}

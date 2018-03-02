@@ -43,7 +43,7 @@ public class BlockContentManagerTest {
 		RowDataProperties rdp = new RowDataProperties.Builder().firstLineIndent(1).textIndent(3).build();
 		CrossReferenceHandler refs = mock(CrossReferenceHandler.class);
 		Context context = createContext();
-		AbstractBlockContentManager m = new BlockContentManager(10, segments, rdp, refs, context, c);
+		AbstractBlockContentManager m = new BlockContentManager(null, 10, segments, rdp, refs, context, c);
 
 		//test
 		assertEquals("⠀⠄⠄⠄⠀⠄⠄⠄", m.getNext().get().getChars());
@@ -65,7 +65,7 @@ public class BlockContentManagerTest {
 		RowDataProperties rdp = new RowDataProperties.Builder().firstLineIndent(1).textIndent(3).build();
 		CrossReferenceHandler refs = mock(CrossReferenceHandler.class);
 		Context context = createContext();
-		AbstractBlockContentManager m = new BlockContentManager(10, segments, rdp, refs, context, c);
+		AbstractBlockContentManager m = new BlockContentManager(null, 10, segments, rdp, refs, context, c);
 
 		//test
 		assertEquals("⠀⠀⠀⠀⠀⠀⠀⠄⠄⠄", m.getNext().get().getChars());
@@ -86,7 +86,7 @@ public class BlockContentManagerTest {
 		RowDataProperties rdp = new RowDataProperties.Builder().firstLineIndent(1).textIndent(3).build();
 		CrossReferenceHandler refs = mock(CrossReferenceHandler.class);
 		Context context = createContext();
-		AbstractBlockContentManager m = new BlockContentManager(10, segments, rdp, refs, context, c);
+		AbstractBlockContentManager m = new BlockContentManager(null, 10, segments, rdp, refs, context, c);
 
 		//test
 		assertEquals("⠀⠄⠄⠄⠀⠄⠄⠄", m.getNext().get().getChars());

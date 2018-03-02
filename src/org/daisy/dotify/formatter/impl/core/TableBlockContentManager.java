@@ -90,6 +90,11 @@ class TableBlockContentManager extends AbstractBlockContentManager {
 	}
 
 	@Override
+	public List<String> getGroupIdentifiers() {
+		return Collections.emptyList();
+	}
+
+	@Override
 	public boolean hasSignificantContent() {
 		return hasNext();
 	}

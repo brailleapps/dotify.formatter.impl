@@ -17,6 +17,7 @@ import org.daisy.dotify.formatter.impl.search.CrossReferenceHandler;
 import org.daisy.dotify.formatter.impl.search.DefaultContext;
 import org.daisy.dotify.formatter.impl.segment.AnchorSegment;
 import org.daisy.dotify.formatter.impl.segment.Evaluate;
+import org.daisy.dotify.formatter.impl.segment.IdentifierSegment;
 import org.daisy.dotify.formatter.impl.segment.LeaderSegment;
 import org.daisy.dotify.formatter.impl.segment.MarkerSegment;
 import org.daisy.dotify.formatter.impl.segment.PageNumberReferenceSegment;
@@ -34,6 +35,7 @@ class SegmentProcessor implements SegmentProcessing {
 	private RowImpl.Builder currentRow;
 	private final ArrayList<Marker> groupMarkers;
 	private final ArrayList<String> groupAnchors;
+	private final ArrayList<String> groupIdentifiers;
 	private AggregatedBrailleTranslatorResult.Builder layoutOrApplyAfterLeader;
 	private String currentLeaderMode;
 	private boolean seenSegmentAfterLeader;
@@ -45,16 +47,19 @@ class SegmentProcessor implements SegmentProcessing {
 	private boolean empty;
 	private CurrentResult cr;
 	private boolean closed;
+	private String blockId;
 
-	SegmentProcessor(List<Segment> segments, int flowWidth, CrossReferenceHandler refs, Context context, int available, BlockMargin margins, FormatterCoreContext fcontext, RowDataProperties rdp) {
+	SegmentProcessor(String blockId, List<Segment> segments, int flowWidth, CrossReferenceHandler refs, Context context, int available, BlockMargin margins, FormatterCoreContext fcontext, RowDataProperties rdp) {
 		this.segments = Collections.unmodifiableList(segments);
 		this.refs = refs;
 		this.context = context;
 		this.groupMarkers = new ArrayList<>();
 		this.groupAnchors = new ArrayList<>();
+		this.groupIdentifiers = new ArrayList<>();
 		this.leaderManager = new LeaderManager();
 		this.significantContent = calculateSignificantContent(segments, context, rdp);
 		this.spc = new SegmentProcessorContext(fcontext, rdp, margins, flowWidth, available);
+		this.blockId = blockId;
 		initFields();
 	}
 	
@@ -67,6 +72,7 @@ class SegmentProcessor implements SegmentProcessing {
 		this.currentRow = template.currentRow==null?null:new RowImpl.Builder(template.currentRow);
 		this.groupAnchors = new ArrayList<>(template.groupAnchors);
 		this.groupMarkers = new ArrayList<>(template.groupMarkers);
+		this.groupIdentifiers = new ArrayList<>(template.groupIdentifiers);
 		this.leaderManager = new LeaderManager(template.leaderManager);
 		this.layoutOrApplyAfterLeader = template.layoutOrApplyAfterLeader==null?null:new AggregatedBrailleTranslatorResult.Builder(template.layoutOrApplyAfterLeader);
 		this.currentLeaderMode = template.currentLeaderMode;
@@ -81,6 +87,7 @@ class SegmentProcessor implements SegmentProcessing {
 		this.cr = template.cr!=null?template.cr.copy():null;
 		this.closed = template.closed;
 		this.significantContent = template.significantContent;
+		this.blockId = template.blockId;
 	}
 	
 	private static boolean calculateSignificantContent(List<Segment> segments, Context context, RowDataProperties rdp) {
@@ -88,6 +95,7 @@ class SegmentProcessor implements SegmentProcessing {
 			switch (s.getSegmentType()) {
 				case Marker:
 				case Anchor:
+				case Identifier:
 					// continue
 					break;
 				case Evaluate:
@@ -123,6 +131,9 @@ class SegmentProcessor implements SegmentProcessing {
 		empty = true;
 		cr = null;
 		closed = false;
+		if (blockId != null && !"".equals(blockId)) {
+			groupIdentifiers.add(blockId);
+		}
 		// produce group markers and anchors
 		getNext(false, false);
 	}
@@ -136,6 +147,7 @@ class SegmentProcessor implements SegmentProcessing {
 		switch (s.getSegmentType()) {
 			case Marker:
 			case Anchor:
+			case Identifier:
 				return false;
 			case Evaluate:
 				return !((Evaluate)s).getExpression().render(context).isEmpty();
@@ -231,6 +243,9 @@ class SegmentProcessor implements SegmentProcessing {
 			case Anchor:
 				applyAfterLeader((AnchorSegment)s);
 				return Optional.empty();
+			case Identifier:
+				applyAfterLeader((IdentifierSegment)s);
+				return Optional.empty();
 			default:
 				return Optional.empty();
 		}
@@ -244,6 +259,8 @@ class SegmentProcessor implements SegmentProcessing {
 			groupAnchors.clear();
 			currentRow.addMarkers(0, groupMarkers);
 			groupMarkers.clear();
+			currentRow.addIdentifiers(0, groupIdentifiers);
+			groupIdentifiers.clear();
 		}
 		RowImpl r = currentRow.build();
 		empty = false;
@@ -394,6 +411,21 @@ class SegmentProcessor implements SegmentProcessing {
 		}
 	}
 	
+	private void applyAfterLeader(final IdentifierSegment identifier) {
+		if (leaderManager.hasLeader()) {
+			if (layoutOrApplyAfterLeader == null) {
+				layoutOrApplyAfterLeader = new AggregatedBrailleTranslatorResult.Builder();
+			}
+			layoutOrApplyAfterLeader.add(identifier);
+		} else {
+			if (currentRow==null) {
+				groupIdentifiers.add(identifier.getName());
+			} else {
+				currentRow.addIdentifier(identifier.getName());
+			}
+		}
+	}
+	
 	private Optional<CurrentResult> layoutLeader() {
 		if (leaderManager.hasLeader()) {
 			// layout() sets currentLeader to null
@@ -430,6 +462,7 @@ class SegmentProcessor implements SegmentProcessing {
 	void reset() {
 		groupAnchors.clear();
 		groupMarkers.clear();
+		groupIdentifiers.clear();
 		initFields();
 	}
 	
@@ -439,6 +472,10 @@ class SegmentProcessor implements SegmentProcessing {
 	
 	List<String> getGroupAnchors() {
 		return groupAnchors;
+	}
+	
+	List<String> getGroupIdentifiers() {
+		return groupIdentifiers;
 	}
 	
 	void setContext(DefaultContext context) {

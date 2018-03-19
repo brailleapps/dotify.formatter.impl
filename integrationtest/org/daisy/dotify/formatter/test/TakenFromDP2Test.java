@@ -1,9 +1,15 @@
 package org.daisy.dotify.formatter.test;
 
+import java.io.File;
 import java.io.IOException;
 
+import org.daisy.dotify.api.engine.FormatterEngineMaker;
 import org.daisy.dotify.api.engine.LayoutEngineException;
+import org.daisy.dotify.api.formatter.FormatterConfiguration;
+import org.daisy.dotify.api.translator.BrailleTranslatorFactory;
+import org.daisy.dotify.api.writer.MediaTypes;
 import org.daisy.dotify.api.writer.PagedMediaWriterConfigurationException;
+import org.daisy.dotify.api.writer.PagedMediaWriterFactoryMaker;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -378,5 +384,24 @@ public class TakenFromDP2Test extends AbstractFormatterEngineTest {
 	public void testTableIssue147() throws LayoutEngineException, IOException, PagedMediaWriterConfigurationException {
 		testPEF("resource-files/dp2/table-issue-147-input.obfl",
 		        "resource-files/dp2/table-issue-147-expected.pef", false);
+	}
+	@Test
+	public void testVolumeBreakingBetweenBlocks() throws LayoutEngineException, IOException, PagedMediaWriterConfigurationException {
+		testPEF("resource-files/dp2/volume-breaking-between-blocks-input.obfl",
+		        "resource-files/dp2/volume-breaking-between-blocks-expected.pef", false);
+	}
+	@Ignore // see https://github.com/brailleapps/dotify.formatter.impl/issues/46
+	@Test
+	public void testVolumeBreakingBetweenWords() throws LayoutEngineException, IOException, PagedMediaWriterConfigurationException {
+		testPEF(
+			FormatterEngineMaker.newInstance().getFactory().newFormatterEngine(
+				new FormatterConfiguration.Builder("sv-SE", BrailleTranslatorFactory.MODE_UNCONTRACTED)
+				.allowsEndingVolumeOnHyphen(false)
+				.build(),
+				PagedMediaWriterFactoryMaker.newInstance().newPagedMediaWriter(MediaTypes.PEF_MEDIA_TYPE)),
+			"resource-files/dp2/volume-breaking-between-words-input.obfl",
+			"resource-files/dp2/volume-breaking-between-words-expected.pef",
+			null
+		);
 	}
 }

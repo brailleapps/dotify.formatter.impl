@@ -39,6 +39,7 @@ class SegmentProcessor implements SegmentProcessing {
 	private AggregatedBrailleTranslatorResult.Builder pending;
 	private String currentLeaderMode;
 	private final LeaderManager leaderManager;
+	private LeaderSegment nextLeader = null;
 	private ListItem item;
 	private int forceCount;
 	private int minLeft;
@@ -164,6 +165,10 @@ class SegmentProcessor implements SegmentProcessing {
 	}
 
 	void prepareNext() {
+		if (nextLeader != null) {
+			leaderManager.addLeader(nextLeader);
+			nextLeader = null;
+		}
 		if (!hasMoreData()) {
 			throw new IllegalStateException();
 		}
@@ -295,7 +300,7 @@ class SegmentProcessor implements SegmentProcessing {
 		try {
 			return layoutPending();
 		} finally {
-			leaderManager.addLeader(ls);
+			nextLeader = ls;
 		}
 	}
 
@@ -406,8 +411,6 @@ class SegmentProcessor implements SegmentProcessing {
 				mode = currentLeaderMode;
 				pending = null;
 			}
-			if (!leaderManager.hasLeader())
-				leaderManager.addLeader(null);
 			CurrentResult cr = new CurrentResultImpl(spc, btr, mode);
 			return Optional.of(cr);
 		}

@@ -137,9 +137,6 @@ class CurrentResultImpl implements CurrentResult {
 				// always discard leader
 				spi.getLeaderManager().removeLeader();
 			}
-		} else {
-			// there may have been a null leader
-			spi.getLeaderManager().removeLeader();
 		}
 		breakNextRow(m1, spi.getCurrentRow(), btr, tabSpace, lineProps.suppressHyphenation());
 		return Optional.ofNullable(ret);

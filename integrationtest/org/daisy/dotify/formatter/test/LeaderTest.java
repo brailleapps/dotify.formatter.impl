@@ -19,7 +19,7 @@ public class LeaderTest extends AbstractFormatterEngineTest {
 		testPEF("resource-files/leader-right-simple-input.obfl", "resource-files/leader-right-simple-expected.pef", false);
 	}
 	
-	@Test @Ignore("Demonstrates an issue with leaders")
+	@Test
 	public void testLeaderSimpleRight_02() throws LayoutEngineException, IOException, PagedMediaWriterConfigurationException {
 		testPEF("resource-files/leader-right-simple2-input.obfl", "resource-files/leader-right-simple2-expected.pef", false);
 	}

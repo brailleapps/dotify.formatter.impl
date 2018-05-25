@@ -4,7 +4,6 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.Optional;
 
 import org.daisy.dotify.api.formatter.Leader;
 import org.daisy.dotify.api.translator.BrailleTranslator;
@@ -14,7 +13,7 @@ import org.daisy.dotify.common.text.StringTools;
 
 class LeaderManager {
 	private static final Logger logger = Logger.getLogger(LeaderManager.class.getCanonicalName());
-	private Deque<Optional<Leader>> leaders;
+	private Deque<Leader> leaders;
 
 	LeaderManager() {
 		this.leaders = new ArrayDeque<>();
@@ -25,11 +24,11 @@ class LeaderManager {
 	}
 
 	void addLeader(Leader leader) {
-		this.leaders.addLast(Optional.ofNullable(leader));
+		this.leaders.addLast(leader);
 	}
 
 	boolean hasLeader() {
-		return !leaders.isEmpty() && leaders.getFirst().isPresent();
+		return !leaders.isEmpty();
 	}
 
 	void removeLeader() {
@@ -41,7 +40,7 @@ class LeaderManager {
 	}
 	
 	Leader getCurrentLeader() {
-		return leaders.getFirst().get();
+		return leaders.getFirst();
 	}
 
 	int getLeaderPosition(int width) {

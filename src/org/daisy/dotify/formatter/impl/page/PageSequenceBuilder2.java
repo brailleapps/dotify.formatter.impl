@@ -187,10 +187,10 @@ public class PageSequenceBuilder2 {
 				BlockContext bc = BlockContext.from(blockContext)
 						.flowWidth(master.getFlowWidth() - master.getTemplate(current.getPageNumber()).getTotalMarginRegionWidth())
 						.build();
-				data = new RowGroupDataSource(master, bc, rgs.getBlocks(), rgs.getVerticalSpacing(), cd);
+				data = new RowGroupDataSource(master, bc, rgs.getBlocks(), rgs.getStartPosition(), cd);
 				dataGroupsIndex++;
-				if (((RowGroupDataSource)data).getVerticalSpacing()!=null) {
-					VerticalSpacing vSpacing = ((RowGroupDataSource)data).getVerticalSpacing();
+				if (((RowGroupDataSource)data).getStartPosition() instanceof VerticalSpacing) {
+					VerticalSpacing vSpacing = (VerticalSpacing)((RowGroupDataSource)data).getStartPosition();
 					float size = 0;
 					for (RowGroup g : data.getRemaining()) {
 						size += g.getUnitSize();
@@ -222,7 +222,7 @@ public class PageSequenceBuilder2 {
 				// And on copy...
 				copy = SplitPointHandler.skipLeading(copy, index).getTail();
 				List<RowGroup> seqTransitionText = transitionContent.isPresent()
-						?new RowGroupDataSource(master, bc, transitionContent.get().getInSequence(), null, cd).getRemaining()
+						?new RowGroupDataSource(master, bc, transitionContent.get().getInSequence(), StartOnNewPage.INSTANCE, cd).getRemaining()
 						:Collections.emptyList();
 				SplitPointSpecification spec;
 				boolean addTransition = true;
@@ -309,7 +309,8 @@ public class PageSequenceBuilder2 {
 				if (hasPageAreaCollection() && current.pageAreaSpaceNeeded() > master.getPageArea().getMaxHeight()) {
 					reassignCollection();
 				}
-				if (!data.isEmpty() || (current!=null && dataGroupsIndex<dataGroups.size() && dataGroups.get(dataGroupsIndex).getVerticalSpacing()==null)) {
+				if (!data.isEmpty()
+				    || (current!=null && dataGroupsIndex<dataGroups.size() && dataGroups.get(dataGroupsIndex).getStartPosition() instanceof StartOnNewPage)) {
 					return current;
 				}
 			}

@@ -31,21 +31,21 @@ class RowGroupDataSource extends BlockProcessor implements SplitPointDataSource<
 	};
 	private final LayoutMaster master;
 	private final Supplements<RowGroup> supplements;
-	private final VerticalSpacing vs;
+	private final RowGroupSequenceStartPosition startPos;
 	private final List<Block> blocks;
 	private List<RowGroup> groups;
 	private BlockContext bc;
 	private int blockIndex;
 	private boolean allowHyphenateLastLine;
 
-	RowGroupDataSource(LayoutMaster master, BlockContext bc, List<Block> blocks, VerticalSpacing vs, Supplements<RowGroup> supplements) {
+	RowGroupDataSource(LayoutMaster master, BlockContext bc, List<Block> blocks, RowGroupSequenceStartPosition startPos, Supplements<RowGroup> supplements) {
 		super();
 		this.master = master;
 		this.bc = bc;
 		this.groups = null;
 		this.blocks = blocks;
 		this.supplements = supplements;
-		this.vs = vs;
+		this.startPos = startPos;
 		this.blockIndex = 0;
 		this.allowHyphenateLastLine = true;
 	}
@@ -68,7 +68,7 @@ class RowGroupDataSource extends BlockProcessor implements SplitPointDataSource<
 		}
 		this.blocks = template.blocks;
 		this.supplements = template.supplements;
-		this.vs = template.vs;
+		this.startPos = template.startPos;
 		this.blockIndex = template.blockIndex;
 		this.allowHyphenateLastLine = template.allowHyphenateLastLine;
 	}
@@ -120,8 +120,8 @@ class RowGroupDataSource extends BlockProcessor implements SplitPointDataSource<
 		}
 	}
 
-	VerticalSpacing getVerticalSpacing() {
-		return vs;
+	RowGroupSequenceStartPosition getStartPosition() {
+		return startPos;
 	}
 	
 	BlockContext getContext() {
@@ -187,7 +187,7 @@ class RowGroupDataSource extends BlockProcessor implements SplitPointDataSource<
 
 	@Override
 	public RowGroupDataSource createEmpty() {
-		return new RowGroupDataSource(master, bc, Collections.emptyList(), vs, EMPTY_SUPPLEMENTS);
+		return new RowGroupDataSource(master, bc, Collections.emptyList(), startPos, EMPTY_SUPPLEMENTS);
 	}
 
 	@Override
@@ -196,7 +196,7 @@ class RowGroupDataSource extends BlockProcessor implements SplitPointDataSource<
 	}
 
 	@Override
-	protected void newRowGroupSequence(VerticalSpacing vs) {
+	protected void newRowGroupSequence(RowGroupSequenceStartPosition startPos) {
 		if (groups!=null) {
 			throw new IllegalStateException();
 		} else {

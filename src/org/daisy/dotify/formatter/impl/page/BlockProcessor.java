@@ -17,7 +17,7 @@ import org.daisy.dotify.formatter.impl.search.DefaultContext;
 abstract class BlockProcessor {
 	private RowGroupProvider rowGroupProvider;
 	
-	protected abstract void newRowGroupSequence(VerticalSpacing vs);
+	protected abstract void newRowGroupSequence(RowGroupSequenceStartPosition pos);
 	protected abstract boolean hasSequence();
 	protected abstract boolean hasResult();
 	protected abstract void addRowGroup(RowGroup rg);
@@ -35,7 +35,7 @@ abstract class BlockProcessor {
             newRowGroupSequence(
                     g.getVerticalPosition()!=null?
                             new VerticalSpacing(g.getVerticalPosition(), new RowImpl("", bcm.getLeftMarginParent(), bcm.getRightMarginParent()))
-                                    :null
+                                    : StartOnNewPage.INSTANCE
             );
 			keepWithNext = -1;
 		} else if (rowGroupProvider!=null) {

@@ -125,5 +125,10 @@ public class MarkerReferenceTest extends AbstractFormatterEngineTest {
 		testPEF("resource-files/marker-ref/marker-reference-spread-initial-page-number-input.obfl",
 				"resource-files/marker-ref/marker-reference-spread-initial-page-number-expected.pef", false);
 	}
+	@Test
+	public void testMarkerReferenceIssue39() throws LayoutEngineException, IOException, PagedMediaWriterConfigurationException {
+		testPEF("resource-files/marker-ref/marker-reference-issue-39-input.obfl",
+		        "resource-files/marker-ref/marker-reference-issue-39-expected.pef", false);
+	}
 
 }

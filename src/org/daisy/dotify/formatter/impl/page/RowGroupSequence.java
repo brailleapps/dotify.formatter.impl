@@ -9,8 +9,8 @@ import org.daisy.dotify.formatter.impl.core.Block;
 class RowGroupSequence {
 	private final List<Block> blocks;
 	private final List<RowGroup> group;
-	private final VerticalSpacing vSpacing;
-	private final BreakBefore breakBefore;
+	VerticalSpacing vSpacing;
+	BreakBefore breakBefore;
 
 	public RowGroupSequence(BreakBefore breakBefore, VerticalSpacing vSpacing) {
 		this.blocks = new ArrayList<>();

@@ -215,11 +215,16 @@ class RowGroupDataSource extends BlockProcessor implements SplitPointDataSource<
 	}
 
 	@Override
-	protected void newRowGroupSequence(BreakBefore breakBefore, VerticalSpacing vs) {
-		if (groups!=null) {
-			throw new IllegalStateException();
+	protected boolean maybeNewRowGroupSequence(BreakBefore breakBefore, VerticalSpacing vs) {
+		if (!hasSequence() || ((breakBefore != BreakBefore.AUTO || vs != null) && hasResult())) {
+			if (groups != null) {
+				throw new IllegalStateException();
+			} else {
+				groups = new ArrayList<>();
+				return true;
+			}
 		} else {
-			groups = new ArrayList<>();
+			return false;
 		}
 	}
 
@@ -228,8 +233,7 @@ class RowGroupDataSource extends BlockProcessor implements SplitPointDataSource<
 		return groups!=null;
 	}
 
-	@Override
-	protected boolean hasResult() {
+	private boolean hasResult() {
 		return hasSequence() && !groups.isEmpty();
 	}
 

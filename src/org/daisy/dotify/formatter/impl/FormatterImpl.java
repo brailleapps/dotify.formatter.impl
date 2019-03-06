@@ -56,7 +56,18 @@ class FormatterImpl implements Formatter {
 	 * @param mode a braille mode
 	 */
 	FormatterImpl(BrailleTranslatorFactoryMakerService translatorFactory, TextBorderFactoryMakerService tbf, MarkerProcessorFactoryMakerService mpf, String locale, String mode) {
-		this.context = new LazyFormatterContext(translatorFactory, tbf, mpf, FormatterConfiguration.with(locale, mode).build());
+		this(translatorFactory, tbf, mpf, FormatterConfiguration.with(locale, mode).build());
+	}
+
+	/**
+	 * Creates a new formatter.
+	 * @param translatorFactory a braille translator factory maker service
+	 * @param tbf a text border factory maker service
+	 * @param mpf a marker processor factory maker service
+	 * @param config the configuration
+	 */
+	FormatterImpl(BrailleTranslatorFactoryMakerService translatorFactory, TextBorderFactoryMakerService tbf, MarkerProcessorFactoryMakerService mpf, FormatterConfiguration config) {
+		this.context = new LazyFormatterContext(translatorFactory, tbf, mpf, config);
 		this.blocks = new Stack<>();
 		this.unopened = true;
 		this.tocs = new HashMap<>();

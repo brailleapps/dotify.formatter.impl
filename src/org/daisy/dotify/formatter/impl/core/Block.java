@@ -92,11 +92,11 @@ public abstract class Block {
 	
 	protected abstract AbstractBlockContentManager newBlockContentManager(BlockContext context);
 	
+	abstract void startStyle(String style);
+	
+	abstract void endStyle();
+	
 	void addSegment(Segment s) {
-		markIfVolatile(s);
-	}
-
-	void addSegment(TextSegment s) {
 		markIfVolatile(s);
 	}
 	

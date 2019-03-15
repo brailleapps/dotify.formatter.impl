@@ -82,15 +82,20 @@ class Table extends Block {
 	}
 
 	@Override
-	public void addSegment(TextSegment s) {
+	public void addSegment(Segment s) {
 		super.addSegment(s);
 		((FormatterCoreImpl)td.getCurrentCell()).getCurrentBlock().addSegment(s);
 	}
 	
+
 	@Override
-	public void addSegment(Segment s) {
-		super.addSegment(s);
-		((FormatterCoreImpl)td.getCurrentCell()).getCurrentBlock().addSegment(s);
+	void startStyle(String style) {
+		((FormatterCoreImpl)td.getCurrentCell()).getCurrentBlock().startStyle(style);
+	}
+
+	@Override
+	void endStyle() {
+		((FormatterCoreImpl)td.getCurrentCell()).getCurrentBlock().endStyle();
 	}
 
 	@Override

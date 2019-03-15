@@ -39,14 +39,12 @@ import org.daisy.dotify.formatter.impl.search.BlockAddress;
 import org.daisy.dotify.formatter.impl.search.CrossReferenceHandler;
 import org.daisy.dotify.formatter.impl.search.DefaultContext;
 import org.daisy.dotify.formatter.impl.segment.AnchorSegment;
-import org.daisy.dotify.formatter.impl.segment.ConnectedTextSegment;
 import org.daisy.dotify.formatter.impl.segment.Evaluate;
 import org.daisy.dotify.formatter.impl.segment.IdentifierSegment;
 import org.daisy.dotify.formatter.impl.segment.LeaderSegment;
 import org.daisy.dotify.formatter.impl.segment.MarkerSegment;
 import org.daisy.dotify.formatter.impl.segment.NewLineSegment;
 import org.daisy.dotify.formatter.impl.segment.PageNumberReferenceSegment;
-import org.daisy.dotify.formatter.impl.segment.StyledSegmentGroup;
 import org.daisy.dotify.formatter.impl.segment.TextSegment;
 
 public class FormatterCoreImpl extends Stack<Block> implements FormatterCore, BlockGroup {
@@ -62,7 +60,6 @@ public class FormatterCoreImpl extends Stack<Block> implements FormatterCore, Bl
 	private Stack<MarginComponent> rightMarginComps;
 	
 	private Stack<Integer> blockIndentParent;
-	private Stack<StyledSegmentGroup> styles;
 	private int blockIndent;
 	private ListItem listItem;
 	protected RenderingScenario scenario;
@@ -88,7 +85,6 @@ public class FormatterCoreImpl extends Stack<Block> implements FormatterCore, Bl
 		this.listItem = null;
 		this.blockIndent = 0;
 		this.blockIndentParent = new Stack<>();
-		this.styles = new Stack<StyledSegmentGroup>();
 		blockIndentParent.add(0);
 		this.discardIdentifiers = discardIdentifiers;
 		this.scenario = null;
@@ -331,9 +327,7 @@ public class FormatterCoreImpl extends Stack<Block> implements FormatterCore, Bl
 			//list item has been used now, discard
 			listItem = null;
 		}
-		bl.addSegment(styles.isEmpty() ?
-			new TextSegment(c.toString(), p) :
-			new ConnectedTextSegment(c.toString(), p, styles.peek()));
+		bl.addSegment(new TextSegment(c.toString(), p));
 	}
 
 	@Override
@@ -349,18 +343,7 @@ public class FormatterCoreImpl extends Stack<Block> implements FormatterCore, Bl
 		if (table!=null) {
 			throw new IllegalStateException("A table is open.");
 		}
-		PageNumberReferenceSegment r; {
-			if (styles.isEmpty()) {
-				r = new PageNumberReferenceSegment(identifier, numeralStyle);
-			} else {
-				String[] style = new String[styles.size()];
-				int i = 0;
-				for (StyledSegmentGroup s : styles) {
-					style[i++] = s.getName();
-				}
-				r = new PageNumberReferenceSegment(identifier, numeralStyle, style);
-			}
-		}
+		PageNumberReferenceSegment r = new PageNumberReferenceSegment(identifier, numeralStyle);
 		getCurrentBlock().addSegment(r);
 	}
 
@@ -369,18 +352,7 @@ public class FormatterCoreImpl extends Stack<Block> implements FormatterCore, Bl
 		if (table!=null) {
 			throw new IllegalStateException("A table is open.");
 		}
-		Evaluate e; {
-			if (styles.isEmpty()) {
-				e = new Evaluate(exp, t);
-			} else {
-				String[] style = new String[styles.size()];
-				int i = 0;
-				for (StyledSegmentGroup s : styles) {
-					style[i++] = s.getName();
-				}
-				e = new Evaluate(exp, t, style);
-			}
-		}
+		Evaluate e = new Evaluate(exp, t);
 		getCurrentBlock().addSegment(e);
 	}
 	
@@ -522,16 +494,12 @@ public class FormatterCoreImpl extends Stack<Block> implements FormatterCore, Bl
 
 	@Override
 	public void startStyle(String style) {
-		if (styles.isEmpty()) {
-			styles.push(new StyledSegmentGroup(style, fc));
-		} else {
-			styles.push(new StyledSegmentGroup(style, styles.peek(), fc));
-		}
+		getCurrentBlock().startStyle(style);
 	}
 
 	@Override
 	public void endStyle() {
-		styles.pop();
+		getCurrentBlock().endStyle();
 	}
 
 	@Override

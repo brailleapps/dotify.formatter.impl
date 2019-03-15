@@ -22,6 +22,7 @@ import org.daisy.dotify.formatter.impl.segment.LeaderSegment;
 import org.daisy.dotify.formatter.impl.segment.MarkerSegment;
 import org.daisy.dotify.formatter.impl.segment.PageNumberReferenceSegment;
 import org.daisy.dotify.formatter.impl.segment.Segment;
+import org.daisy.dotify.formatter.impl.segment.Style;
 import org.daisy.dotify.formatter.impl.segment.TextSegment;
 
 class SegmentProcessor implements SegmentProcessing {
@@ -108,6 +109,10 @@ class SegmentProcessor implements SegmentProcessing {
 						return true;
 					}
 					break;
+				case Style:
+					if (!calculateSignificantContent(((Style)s).getSegments(), context, rdp)) {
+						break;
+					}
 				case NewLine:
 				case Leader:
 				case Reference:

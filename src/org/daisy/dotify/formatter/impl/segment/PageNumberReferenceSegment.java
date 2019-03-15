@@ -17,6 +17,7 @@ public class PageNumberReferenceSegment extends PageNumberReference implements S
 	 * @param style Array of styles to apply (from outer to inner).
 	 * @param textStyle the text styles
 	 */
+	//TODO: remove
 	public PageNumberReferenceSegment(String refid, NumeralStyle style, String[] textStyle) {
 		super(refid, style);
 		this.textStyle = textStyle;
@@ -27,6 +28,7 @@ public class PageNumberReferenceSegment extends PageNumberReference implements S
 	 * @param width The width of the evaluated expression.
 	 * @return returns a new text attribute
 	 */
+	//TODO: remove
 	public TextAttribute getTextAttribute(int width) {
 		if (textStyle == null || textStyle.length == 0) {
 			return null;

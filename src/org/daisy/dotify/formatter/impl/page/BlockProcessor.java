@@ -8,6 +8,7 @@ import org.daisy.dotify.formatter.impl.row.AbstractBlockContentManager;
 import org.daisy.dotify.formatter.impl.row.BlockStatistics;
 import org.daisy.dotify.formatter.impl.row.LineProperties;
 import org.daisy.dotify.formatter.impl.row.RowImpl;
+import org.daisy.dotify.formatter.impl.search.BlockAddress;
 import org.daisy.dotify.formatter.impl.search.DefaultContext;
 
 /**
@@ -76,6 +77,10 @@ abstract class BlockProcessor {
 		} else {
 			return null;
 		}
+	}
+	
+	BlockAddress getBlockAddress() {
+		return rowGroupProvider!=null?rowGroupProvider.getBlockAddress():null;
 	}
 
 }

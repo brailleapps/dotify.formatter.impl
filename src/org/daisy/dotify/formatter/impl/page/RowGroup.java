@@ -10,6 +10,7 @@ import org.daisy.dotify.api.formatter.Marker;
 import org.daisy.dotify.api.writer.Row;
 import org.daisy.dotify.common.splitter.SplitPointUnit;
 import org.daisy.dotify.formatter.impl.datatype.VolumeKeepPriority;
+import org.daisy.dotify.formatter.impl.row.LineProperties;
 import org.daisy.dotify.formatter.impl.row.RowImpl;
 
 class RowGroup implements SplitPointUnit {
@@ -24,6 +25,7 @@ class RowGroup implements SplitPointUnit {
 	private final VolumeKeepPriority avoidVolumeBreakAfterPriority;
 	private final boolean lastInBlock;
 	private final boolean mergeable;
+	private final LineProperties lineProps;
 	
 	static class Builder {
 		private final List<RowImpl> rows;
@@ -37,6 +39,8 @@ class RowGroup implements SplitPointUnit {
 		private VolumeKeepPriority avoidVolumeBreakAfterPriority = VolumeKeepPriority.empty();
 		private boolean lastInBlock = false;
 		private boolean mergeable = false;
+		private LineProperties lineProps = LineProperties.DEFAULT;
+		
 		Builder(float rowDefault, RowImpl ... rows) {
 			this(rowDefault, Arrays.asList(rows));
 		}
@@ -111,6 +115,10 @@ class RowGroup implements SplitPointUnit {
 			this.mergeable = value;
 			return this;
 		}
+		Builder lineProperties(LineProperties value) {
+			this.lineProps = value;
+			return this;
+		}
 		RowGroup build() {
 			return new RowGroup(this);
 		}
@@ -136,6 +144,7 @@ class RowGroup implements SplitPointUnit {
 		this.avoidVolumeBreakAfterPriority = builder.avoidVolumeBreakAfterPriority;
 		this.lastInBlock = builder.lastInBlock;
 		this.mergeable = builder.mergeable;
+		this.lineProps = builder.lineProps;
 	}
 	
 	/**
@@ -159,6 +168,7 @@ class RowGroup implements SplitPointUnit {
 		this.avoidVolumeBreakAfterPriority = template.avoidVolumeBreakAfterPriority;
 		this.lastInBlock = template.lastInBlock;
 		this.mergeable = template.mergeable;
+		this.lineProps = template.lineProps;
 	}
 	
 	private static float getRowSpacing(float rowDefault, RowImpl r) {
@@ -297,6 +307,10 @@ class RowGroup implements SplitPointUnit {
 	 */
 	boolean isMergeable() {
 		return mergeable;
+	}
+	
+	LineProperties getLineProperties() {
+		return lineProps;
 	}
 	
 }

@@ -238,10 +238,6 @@ class SearchInfo {
 			.orElse("");
 	}
 	
-	Optional<PageDetails> findNextPageInSequence(PageId id) {
-		return getPageDetails(id).flatMap(p->Optional.ofNullable(getPageInSequenceWithOffset(p, 1, false)));
-	}
-	
 	boolean isDirty() {
 		return dirty;
 	}

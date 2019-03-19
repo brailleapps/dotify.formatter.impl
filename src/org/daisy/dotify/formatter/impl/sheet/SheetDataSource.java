@@ -18,6 +18,8 @@ import org.daisy.dotify.formatter.impl.page.BlockSequence;
 import org.daisy.dotify.formatter.impl.page.PageImpl;
 import org.daisy.dotify.formatter.impl.page.PageSequenceBuilder2;
 import org.daisy.dotify.formatter.impl.page.RestartPaginationException;
+import org.daisy.dotify.formatter.impl.search.BlockAddress;
+import org.daisy.dotify.formatter.impl.search.BlockLineLocation;
 import org.daisy.dotify.formatter.impl.search.DefaultContext;
 import org.daisy.dotify.formatter.impl.search.DocumentSpace;
 import org.daisy.dotify.formatter.impl.search.PageDetails;
@@ -204,7 +206,8 @@ public class SheetDataSource implements SplitPointDataSource<Sheet, SheetDataSou
 					 initialPageOffset = pageCounter.getDefaultPageOffset();
 				}
 				seqId = new SequenceId(seqsIndex, new DocumentSpace(rcontext.getSpace(), rcontext.getCurrentVolume()), volumeGroup);
-				psb = new PageSequenceBuilder2(pageCounter.getPageCount(), bs.getLayoutMaster(), initialPageOffset, bs, context, rcontext, seqId);
+				BlockLineLocation cbl = psb!=null?psb.currentBlockLineLocation():new BlockLineLocation(new BlockAddress(-1, -1), -1);
+				psb = new PageSequenceBuilder2(pageCounter.getPageCount(), bs.getLayoutMaster(), initialPageOffset, bs, context, rcontext, seqId, cbl);
 				sectionProperties = bs.getLayoutMaster().newSectionProperties();
 				s = null;
 				si = null;
@@ -238,14 +241,14 @@ public class SheetDataSource implements SplitPointDataSource<Sheet, SheetDataSou
 							transition = context.getTransitionBuilder().getInterruptTransition();
 						} else if (context.getTransitionBuilder().getProperties().getApplicationRange()==ApplicationRange.SHEET) {
 							// This id is the same id as the one created below in the call to nextPage
-							PageId thisPageId = psb.nextPageId(0);
+							BlockLineLocation thisPageId = psb.currentBlockLineLocation();
 							// This gets the page details for the next page in this sequence (if any)
-							Optional<PageDetails> next = rcontext.getRefs().findNextPageInSequence(thisPageId);
+							Optional<PageDetails> next = rcontext.getRefs().getNextPageDetailsInSequence(thisPageId);
 							// If there is a page details in this sequence and volume break is preferred on this page
 							if (next.isPresent()) {
 								TransitionProperties st = rcontext.getRefs().getTransitionProperties(thisPageId);
 								double v1 = st.getVolumeKeepPriority().orElse(10) + (st.hasBlockBoundary()?0.5:0);
-								st = rcontext.getRefs().getTransitionProperties(next.get().getPageId());
+								st = rcontext.getRefs().getTransitionProperties(next.get().getPageLocation());
 								double v2 = st.getVolumeKeepPriority().orElse(10) + (st.hasBlockBoundary()?0.5:0);
 								if (v1>v2) {
 									//break here

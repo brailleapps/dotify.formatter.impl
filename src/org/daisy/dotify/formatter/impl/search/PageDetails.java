@@ -8,15 +8,17 @@ import org.daisy.dotify.api.formatter.Marker;
 public class PageDetails {
 	private final boolean duplex;
 	private final PageId pageId;
+	private final BlockLineLocation loc;
 	private final int pageNumberOffset;
 	private int volumeNumber;
 	private int contentMarkersBegin;
 	
 	private final ArrayList<Marker> markers;
 	
-	public PageDetails(boolean duplex, PageId pageId, int pageNumberOffset) {
+	public PageDetails(boolean duplex, PageId pageId, BlockLineLocation loc, int pageNumberOffset) {
 		this.duplex = duplex;
 		this.pageId = pageId;
+		this.loc = loc;
 		this.pageNumberOffset = pageNumberOffset;
 		this.markers = new ArrayList<>();
 		this.contentMarkersBegin = 0;
@@ -27,6 +29,7 @@ public class PageDetails {
 		return new PageDetails(
 				this.duplex, 
 				this.pageId.with(ordinal),
+				this.loc,
 				pageNumberOffset);
 	}
 
@@ -44,6 +47,10 @@ public class PageDetails {
 	
 	public int getPageNumber() {
 		return pageId.getOrdinal() + pageNumberOffset + 1;
+	}
+	
+	public BlockLineLocation getPageLocation() {
+		return loc;
 	}
 	
 	int getVolumeNumber() {

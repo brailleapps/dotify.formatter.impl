@@ -22,7 +22,8 @@ public class CrossReferenceHandler {
     private final LookupHandler<BlockAddress, List<String>> groupAnchors;
     private final LookupHandler<BlockAddress, List<Marker>> groupMarkers;
     private final LookupHandler<BlockAddress, List<String>> groupIdentifiers;
-	private final LookupHandler<PageId, TransitionProperties> transitionProperties;
+	private final LookupHandler<BlockLineLocation, TransitionProperties> transitionProperties;
+	private final LookupHandler<BlockLineLocation, PageDetails> nextPageDetails;
 	private final Map<Integer, Overhead> volumeOverhead;
     private final Map<String, Integer> counters;
 	private final SearchInfo searchInfo;
@@ -46,6 +47,7 @@ public class CrossReferenceHandler {
         this.groupMarkers = new LookupHandler<>();
         this.groupIdentifiers = new LookupHandler<>();
 		this.transitionProperties = new LookupHandler<>();
+		this.nextPageDetails = new LookupHandler<>();
 		this.volumeOverhead = new HashMap<>();
 		this.counters = new HashMap<>();
 		this.searchInfo = new SearchInfo();
@@ -137,7 +139,7 @@ public class CrossReferenceHandler {
 		breakable.commit();
 	}
 	
-	public void keepTransitionProperties(PageId id, TransitionProperties value) {
+	public void keepTransitionProperties(BlockLineLocation id, TransitionProperties value) {
 		if (readOnly) { return; }
 		transitionProperties.keep(id, value);
 	}
@@ -232,7 +234,7 @@ public class CrossReferenceHandler {
 		return breakable.get(ident, true);
 	}
 	
-	public TransitionProperties getTransitionProperties(PageId id) {
+	public TransitionProperties getTransitionProperties(BlockLineLocation id) {
 		return transitionProperties.get(id, TransitionProperties.empty());
 	}
 
@@ -303,8 +305,13 @@ public class CrossReferenceHandler {
 		return searchInfo.findStartAndMarker(id, spec);
 	}
 
-	public Optional<PageDetails> findNextPageInSequence(PageId id) {
-		return searchInfo.findNextPageInSequence(id);
+	public Optional<PageDetails> getNextPageDetailsInSequence(BlockLineLocation id) {
+		return Optional.ofNullable(nextPageDetails.get(id));
+	}
+	
+	public void setNextPageDetailsInSequence(BlockLineLocation id, PageDetails details) {
+		if (readOnly) { return; }
+		nextPageDetails.put(id, details);
 	}
 	
 	/**

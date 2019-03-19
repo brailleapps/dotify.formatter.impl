@@ -16,6 +16,8 @@ import org.daisy.dotify.api.translator.TextBorderFactoryMaker;
 import org.daisy.dotify.api.translator.TranslatorConfigurationException;
 import org.daisy.dotify.formatter.impl.core.FormatterContext;
 import org.daisy.dotify.formatter.impl.core.LayoutMaster;
+import org.daisy.dotify.formatter.impl.search.BlockAddress;
+import org.daisy.dotify.formatter.impl.search.BlockLineLocation;
 import org.daisy.dotify.formatter.impl.search.DocumentSpace;
 import org.daisy.dotify.formatter.impl.search.PageDetails;
 import org.daisy.dotify.formatter.impl.search.PageId;
@@ -58,6 +60,7 @@ public class FieldResolverTest {
 						0
 					)
 				), 
+				null,
 				0);
 		FieldResolver resolver = new FieldResolver(master, fcontext, null, details);
 

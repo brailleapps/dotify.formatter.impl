@@ -44,7 +44,7 @@ public class PageSequenceBuilder2 {
 	private final PageAreaProperties areaProps;
 
 	private final ContentCollectionImpl collection;
-	private final BlockContext blockContext;
+	private BlockContext blockContext;
 	private final CollectionData cd;
 	private final LayoutMaster master;
 	private final List<RowGroupSequence> dataGroups;
@@ -129,6 +129,13 @@ public class PageSequenceBuilder2 {
 		return template==null?null:new PageSequenceBuilder2(template);
 	}
 	
+	public void setCurrentVolumeNumber(int volume) {
+		blockContext = BlockContext.from(blockContext).currentVolume(volume).build();
+		if (data != null) {
+			data.setContext(blockContext);
+		}
+	}
+	
 	/**
 	 * Gets a new PageId representing the next page in this sequence.
 	 * @param offset the offset
@@ -174,7 +181,6 @@ public class PageSequenceBuilder2 {
 		for (String id : ret.getIdentifiers()) {
 			blockContext.getRefs().setPageNumber(id, ret.getPageNumber());
 		}
-		//This is for pre/post volume contents, where the volume number is known
 		if (blockContext.getCurrentVolume()!=null) {
 			for (String id : ret.getIdentifiers()) {
 				blockContext.getRefs().setVolumeNumber(id, blockContext.getCurrentVolume());

@@ -181,12 +181,13 @@ public class VolumeProvider {
 
 		crh.setReadOnly();
 		SheetDataSource data = groups.currentGroup().getUnits();
+		data.setCurrentVolumeNumber(currentVolumeNumber);
 		SheetDataSource copySource = new SheetDataSource(data);
 		SplitPointSpecification spec = volSplitter.find(splitterMax-overhead, 
 				copySource, 
 				cost, StandardSplitOption.ALLOW_FORCE);
 		crh.setReadWrite();
-		sp = volSplitter.split(spec, groups.currentGroup().getUnits());
+		sp = volSplitter.split(spec, data);
 		/*
 			sp = volSplitter.split(splitterMax-overhead, 
 					groups.currentGroup().getUnits(),

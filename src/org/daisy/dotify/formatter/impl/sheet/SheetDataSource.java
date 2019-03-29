@@ -38,7 +38,7 @@ public class SheetDataSource implements SplitPointDataSource<Sheet, SheetDataSou
 	private final PageCounter pageCounter;
 	private final FormatterContext context;
 	//Input data
-	private final DefaultContext rcontext;
+	private DefaultContext rcontext;
 	private final Integer volumeGroup;
 	private final List<BlockSequence> seqsIterator;
 	private final int sheetOffset;
@@ -165,6 +165,13 @@ public class SheetDataSource implements SplitPointDataSource<Sheet, SheetDataSou
 	@Override
 	public Supplements<Sheet> getSupplements() {
 		return null;
+	}
+	
+	public void setCurrentVolumeNumber(int volume) {
+		rcontext = DefaultContext.from(rcontext).currentVolume(volume).build();
+		if (psb != null) {
+			psb.setCurrentVolumeNumber(volume);
+		}
 	}
 	
 	/**

@@ -186,7 +186,6 @@ class ExpressionImpl implements Expression {
 	private Object doEvaluate(String expr) {
 		
 		expr = expr.trim();
-		expr = expr.replaceAll("\\s+", " ");
 		int leftPar = expr.indexOf('(');
 		int rightPar = expr.lastIndexOf(')');
 		if (leftPar==-1 && rightPar==-1) {
@@ -439,6 +438,7 @@ class ExpressionImpl implements Expression {
 			}
 			else if (expr.charAt(i)==' ' && level==0 && !str) {
 				ret.add(expr.substring(ci, i));
+				while (i+1<expr.length() && expr.charAt(i+1)==' ') { i++; }
 				ci=i+1;
 			}
 		}

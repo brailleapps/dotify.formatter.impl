@@ -365,11 +365,28 @@ public class PageSequenceBuilder2 {
 					return current;
 				} else if (current!=null && dataGroupsIndex<dataGroups.size()) {
 					BreakBefore nextStart = dataGroups.get(dataGroupsIndex).getBreakBefore();
-					if (nextStart!=BreakBefore.AUTO) {
-						if (nextStart == BreakBefore.SHEET && master.duplex() && pageCount%2==1) {
-							nextEmpty = true;
+					switch (nextStart) {
+					case SHEET:
+						if (master.duplex()) {
+							if (pageCount %2 == 1) { // on recto page
+								if (current.hasRows()) {
+									nextEmpty = true;
+									return current;
+								} else {
+									break; // we are already at the beginning of a recto page
+								}
+							} else { // on verso page
+								return current;
+							}
 						}
-						return current;
+					case PAGE:
+						if (current.hasRows()) {
+							return current;
+						} else {
+							break; // we are already at the beginning of a page
+						}
+					case AUTO:
+					default:
 					}
 				}
 			}

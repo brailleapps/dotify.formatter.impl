@@ -28,7 +28,7 @@ import org.daisy.dotify.formatter.impl.segment.IdentifierSegment;
 import org.daisy.dotify.formatter.impl.segment.LeaderSegment;
 import org.daisy.dotify.formatter.impl.segment.MarkerSegment;
 import org.daisy.dotify.formatter.impl.segment.MarkerValue;
-import org.daisy.dotify.formatter.impl.segment.PageNumberReferenceSegment;
+import org.daisy.dotify.formatter.impl.segment.PageNumberReference;
 import org.daisy.dotify.formatter.impl.segment.Segment;
 import org.daisy.dotify.formatter.impl.segment.Segment.SegmentType;
 import org.daisy.dotify.formatter.impl.segment.Style;
@@ -177,7 +177,9 @@ class SegmentProcessor implements SegmentProcessing {
 				MarkerValue mv = extractMarkerValue(text[i]);
 				ret.add(new Evaluate(s.getExpression(), s.getTextProperties(), mv));
 			} else if (v.getSegmentType()==SegmentType.Reference) { 
-				
+				PageNumberReference s = (PageNumberReference)v;
+				MarkerValue mv = extractMarkerValue(text[i]);
+				ret.add(new PageNumberReference(s.getRefId(), s.getNumeralStyle(), mv));
 			} else if (v.getSegmentType()==SegmentType.Style) {
 				throw new IllegalArgumentException();
 			} else {
@@ -345,7 +347,7 @@ class SegmentProcessor implements SegmentProcessing {
 			case Leader:
 				return layoutLeaderSegment((LeaderSegment)s);
 			case Reference:
-				return layoutPageSegment((PageNumberReferenceSegment)s);
+				return layoutPageSegment((PageNumberReference)s);
 			case Evaluate:
 				return layoutEvaluate((Evaluate)s);
 			case Marker:
@@ -424,7 +426,7 @@ class SegmentProcessor implements SegmentProcessing {
 		}
 	}
 
-	private Optional<CurrentResult> layoutPageSegment(PageNumberReferenceSegment rs) {
+	private Optional<CurrentResult> layoutPageSegment(PageNumberReference rs) {
 		Integer page = null;
 		if (refs!=null) {
 			page = refs.getPageNumber(rs.getRefId());
@@ -432,12 +434,12 @@ class SegmentProcessor implements SegmentProcessing {
 		//TODO: translate references using custom language?
 		Translatable spec;
 		if (page==null) {
-			spec = Translatable.text("??").locale(null).build();
+			spec = Translatable.text(rs.applyMarker("??")).locale(null).build();
 		} else {
-			String txt = "" + rs.getNumeralStyle().format(page);
+			String txt = rs.applyMarker("" + rs.getNumeralStyle().format(page));
 			spec = Translatable.text(
 					spc.getFormatterContext().getConfiguration().isMarkingCapitalLetters()?txt:txt.toLowerCase()
-					).locale(null).attributes(rs.getTextAttribute(txt.length())).build();
+					).locale(null).build();
 		}
 		if (leaderManager.hasLeader()) {
 			layoutAfterLeader(spec, null);

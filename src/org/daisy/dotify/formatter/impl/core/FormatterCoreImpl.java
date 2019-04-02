@@ -44,7 +44,7 @@ import org.daisy.dotify.formatter.impl.segment.IdentifierSegment;
 import org.daisy.dotify.formatter.impl.segment.LeaderSegment;
 import org.daisy.dotify.formatter.impl.segment.MarkerSegment;
 import org.daisy.dotify.formatter.impl.segment.NewLineSegment;
-import org.daisy.dotify.formatter.impl.segment.PageNumberReferenceSegment;
+import org.daisy.dotify.formatter.impl.segment.PageNumberReference;
 import org.daisy.dotify.formatter.impl.segment.TextSegment;
 
 public class FormatterCoreImpl extends Stack<Block> implements FormatterCore, BlockGroup {
@@ -343,7 +343,7 @@ public class FormatterCoreImpl extends Stack<Block> implements FormatterCore, Bl
 		if (table!=null) {
 			throw new IllegalStateException("A table is open.");
 		}
-		PageNumberReferenceSegment r = new PageNumberReferenceSegment(identifier, numeralStyle);
+		PageNumberReference r = new PageNumberReference(identifier, numeralStyle);
 		getCurrentBlock().addSegment(r);
 	}
 

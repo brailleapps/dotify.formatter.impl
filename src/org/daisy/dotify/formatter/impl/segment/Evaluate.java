@@ -10,10 +10,9 @@ import org.daisy.dotify.api.formatter.TextProperties;
  * @author Joel Håkansson
  *
  */
-public class Evaluate implements Segment {
+public class Evaluate extends SegmentBase {
 	private final DynamicContent expression;
 	private final TextProperties props;
-	private final MarkerValue marker;
 	
 	/**
 	 * @param expression the expression
@@ -24,9 +23,9 @@ public class Evaluate implements Segment {
 	}
 
 	public Evaluate(DynamicContent expression, TextProperties props, MarkerValue marker) {
+		super(marker);
 		this.expression = expression;
 		this.props = props;
-		this.marker = marker;
 	}
 	
 	public DynamicContent getExpression() {
@@ -35,22 +34,6 @@ public class Evaluate implements Segment {
 
 	public TextProperties getTextProperties() {
 		return props;
-	}
-	
-	public String applyMarker(String exp) {
-		if (marker!=null) {
-			StringBuilder sb = new StringBuilder();
-			if (marker.getPrefix()!=null) {
-				sb.append(marker.getPrefix());
-			}
-			sb.append(exp);
-			if (marker.getPostfix()!=null) {
-				sb.append(marker.getPostfix());
-			}
-			return sb.toString();
-		} else {
-			return exp;
-		}
 	}
 
 	@Override
@@ -61,9 +44,8 @@ public class Evaluate implements Segment {
 	@Override
 	public int hashCode() {
 		final int prime = 31;
-		int result = 1;
+		int result = super.hashCode();
 		result = prime * result + ((expression == null) ? 0 : expression.hashCode());
-		result = prime * result + ((marker == null) ? 0 : marker.hashCode());
 		result = prime * result + ((props == null) ? 0 : props.hashCode());
 		return result;
 	}
@@ -73,7 +55,7 @@ public class Evaluate implements Segment {
 		if (this == obj) {
 			return true;
 		}
-		if (obj == null) {
+		if (!super.equals(obj)) {
 			return false;
 		}
 		if (getClass() != obj.getClass()) {
@@ -85,13 +67,6 @@ public class Evaluate implements Segment {
 				return false;
 			}
 		} else if (!expression.equals(other.expression)) {
-			return false;
-		}
-		if (marker == null) {
-			if (other.marker != null) {
-				return false;
-			}
-		} else if (!marker.equals(other.marker)) {
 			return false;
 		}
 		if (props == null) {

@@ -212,6 +212,9 @@ class RowGroupDataSource implements SplitPointDataSource<RowGroup, RowGroupDataS
 	private void newRowGroupSequence(BreakBefore breakBefore, VerticalSpacing vs) {
 		// Vertical spacing isn't used at this stage.
 		if (data.getGroup()!=null) {
+			// this means the return values of ScenarioData.hasSequence() and
+			// ScenarioData.hasResult() did not match those of RowGroupDataSource.hasSequence() and
+			// RowGroupDataSource.hasResult() for the same block
 			throw new IllegalStateException();
 		} else {
 			data.setGroup(new ArrayList<>());

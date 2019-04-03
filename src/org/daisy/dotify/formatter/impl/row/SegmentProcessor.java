@@ -27,6 +27,7 @@ import org.daisy.dotify.formatter.impl.segment.Evaluate;
 import org.daisy.dotify.formatter.impl.segment.IdentifierSegment;
 import org.daisy.dotify.formatter.impl.segment.LeaderSegment;
 import org.daisy.dotify.formatter.impl.segment.MarkerSegment;
+import org.daisy.dotify.formatter.impl.segment.MarkerValue;
 import org.daisy.dotify.formatter.impl.segment.PageNumberReferenceSegment;
 import org.daisy.dotify.formatter.impl.segment.Segment;
 import org.daisy.dotify.formatter.impl.segment.Segment.SegmentType;
@@ -105,12 +106,11 @@ class SegmentProcessor implements SegmentProcessing {
 			// No styles without a marker processor...
 			return removeStyles(segments).collect(Collectors.toList());
 		} else {
-			String[] text = extractText(removeStyles(segments), context).toArray(String[]::new);
-			//Build TextAttribute
+			List<Segment> noStyles = removeStyles(segments).collect(Collectors.toList());
+			String[] text = extractText(noStyles.stream(), context).toArray(String[]::new);
 			TextAttribute atts = buildTextAttribute(null, segments);
 			String[] newTexts = mp.processAttributesRetain(atts, text);
-			// Update text segments and resolve others...
-			return segments;
+			return updateSegments(noStyles, newTexts);
 		}
 	}
 
@@ -162,7 +162,39 @@ class SegmentProcessor implements SegmentProcessing {
 				w += 1;
 			}
 		};
-		return new DefaultTextAttribute.Builder().build(w);
+		return b.build(w);
+	}
+	
+	private static List<Segment> updateSegments(List<Segment> in, String[] text) {
+		List<Segment> ret = new ArrayList<>();
+		int i = 0;
+		for (Segment v : in) {
+			if (v.getSegmentType()==SegmentType.Text) {
+				TextSegment s = (TextSegment)v;
+				ret.add(new TextSegment(text[i], s.getTextProperties()));
+			} else if (v.getSegmentType()==SegmentType.Evaluate) { 
+				Evaluate s = (Evaluate)v;
+				MarkerValue mv = extractMarkerValue(text[i]);
+				ret.add(new Evaluate(s.getExpression(), s.getTextProperties(), mv));
+			} else if (v.getSegmentType()==SegmentType.Reference) { 
+				
+			} else if (v.getSegmentType()==SegmentType.Style) {
+				throw new IllegalArgumentException();
+			} else {
+				ret.add(v);
+			}
+			i++;
+		}
+		return ret;
+	}
+	
+	private static MarkerValue extractMarkerValue(String in) {
+		int i = in.indexOf(' ');
+		if (i<0) {
+			return null;
+		} else {
+			return new MarkerValue(in.substring(0, i), in.substring(i+1));
+		}
 	}
 	
 	private static boolean calculateSignificantContent(List<Segment> segments, Context context, RowDataProperties rdp) {
@@ -419,13 +451,12 @@ class SegmentProcessor implements SegmentProcessing {
 	}
 	
 	private Optional<CurrentResult> layoutEvaluate(Evaluate e) {
-		String txt = e.getExpression().render(context);
+		String txt = e.applyMarker(e.getExpression().render(context));
 		if (!txt.isEmpty()) { // Don't create a new row if the evaluated expression is empty
 		                    // Note: this could be handled more generally (also for regular text) in layout().
 			Translatable spec = Translatable.text(spc.getFormatterContext().getConfiguration().isMarkingCapitalLetters()?txt:txt.toLowerCase()).
 					locale(e.getTextProperties().getLocale()).
 					hyphenate(e.getTextProperties().isHyphenating()).
-					attributes(e.getTextAttribute(txt.length())).
 					build();
 			if (leaderManager.hasLeader()) {
 				layoutAfterLeader(spec, null);

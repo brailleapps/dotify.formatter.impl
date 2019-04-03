@@ -10,6 +10,7 @@ import org.daisy.dotify.api.formatter.DynamicContent;
 import org.daisy.dotify.api.formatter.NumeralStyle;
 import org.daisy.dotify.api.formatter.TextProperties;
 import org.daisy.dotify.api.translator.MarkerProcessor;
+import org.daisy.dotify.formatter.impl.segment.AnchorSegment;
 import org.daisy.dotify.formatter.impl.segment.Evaluate;
 import org.daisy.dotify.formatter.impl.segment.MarkerValue;
 import org.daisy.dotify.formatter.impl.segment.PageNumberReference;
@@ -47,7 +48,7 @@ public class SegmentProcessorTest {
 	}
 	
 	@Test
-	public void testTextWithProcessor() {
+	public void testTextWithProcessor_01() {
 		Context context = Mockito.mock(Context.class);
 		Segment t;
 		TextProperties tp = new TextProperties.Builder("und").build();
@@ -64,6 +65,31 @@ public class SegmentProcessorTest {
 		List<Segment> actuals = SegmentProcessor.processStyles(segments, mp, context);
 		List<Segment> expecteds = new ArrayList<>();
 		expecteds.add(new TextSegment("abcxdefyghi", tp));
+		assertEquals(expecteds, actuals);
+	}
+	
+	@Test
+	public void testTextWithProcessor_02() {
+		Context context = Mockito.mock(Context.class);
+		Segment t;
+		TextProperties tp = new TextProperties.Builder("und").build();
+		List<Segment> segments = new ArrayList<>();
+		List<Segment> expecteds = new ArrayList<>();
+		t = new TextSegment("abc", tp);
+		segments.add(t);
+		expecteds.add(new TextSegment("abcxdefy", tp));
+		Style s = new Style("em");
+		segments.add(s);
+		t = new TextSegment("def", tp);
+		s.add(t);
+		t = new AnchorSegment("ref-id");
+		s.add(t);
+		expecteds.add(t);
+
+		MarkerProcessor mp = new DefaultMarkerProcessor.Builder()
+				.addDictionary("em", (str, ta)->new Marker("x", "y"))
+				.build();
+		List<Segment> actuals = SegmentProcessor.processStyles(segments, mp, context);
 		assertEquals(expecteds, actuals);
 	}
 	
@@ -148,4 +174,5 @@ public class SegmentProcessorTest {
 		List<Segment> actuals = SegmentProcessor.processStyles(segments, mp, context);
 		assertEquals(expecteds, actuals);
 	}
+
 }

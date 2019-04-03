@@ -144,25 +144,73 @@ class SegmentProcessor implements SegmentProcessing {
 	}
 	
 	private static TextAttribute buildTextAttribute(String name, List<Segment> in) {
-		DefaultTextAttribute.Builder b = new DefaultTextAttribute.Builder(name);
+		DefaultTextAttribute.Builder b;
+		// Trim style scope
+		int start = -1;
+		int end = -1;
+		boolean trimStart = false;
+		boolean trimEnd = false;
+		int i = 0;
+		if (name!=null) {
+			// Scan segments for style scope
+			for (Segment v : in) {
+				// If significant content is encountered, set start and end of trim zone.
+				if (v.getSegmentType()==SegmentType.Text || v.getSegmentType()==SegmentType.Evaluate || v.getSegmentType()==SegmentType.Reference) {
+					if (start<0) {
+						start = i;
+						end = i;
+					} else {
+						end = i;
+					}
+				}
+				i++;
+			}
+			trimStart = start>0 && in.size()>1;
+			trimEnd = end<in.size()-1 && in.size()>1;
+			if (trimStart) {
+				b = new DefaultTextAttribute.Builder();
+			} else {
+				b = new DefaultTextAttribute.Builder(name);
+			}
+		} else {
+			b = new DefaultTextAttribute.Builder();
+		}
+		i = 0;
+		int sw = 0;
 		int w = 0;
 		for (Segment v : in) {
+			if (trimStart && i==start) {
+				DefaultTextAttribute.Builder c = b;
+				b = new DefaultTextAttribute.Builder(name);
+				b.add(c.build(sw));
+				sw = 0;
+			}
 			if (v.getSegmentType()==SegmentType.Text) {
 				TextSegment s = (TextSegment)v;
 				TextAttribute a = new DefaultTextAttribute.Builder().build(s.getText().length());
 				b.add(a);
 				w += a.getWidth();
+				sw += a.getWidth();
 			} else if (v.getSegmentType()==SegmentType.Style) {
 				Style s = ((Style)v);
 				TextAttribute a = buildTextAttribute(s.getName(), s.getSegments());
 				b.add(a);
 				w += a.getWidth();
+				sw += a.getWidth();
 			} else {
 				TextAttribute a = new DefaultTextAttribute.Builder().build(1);
 				b.add(a);
 				w += 1;
+				sw += 1;
 			}
-		};
+			if (trimEnd && i==end) {
+				DefaultTextAttribute.Builder c = b;
+				b = new DefaultTextAttribute.Builder();
+				b.add(c.build(sw));
+				sw = 0;
+			}
+			i++;
+		}
 		return b.build(w);
 	}
 	
@@ -184,6 +232,9 @@ class SegmentProcessor implements SegmentProcessing {
 			} else if (v.getSegmentType()==SegmentType.Style) {
 				throw new IllegalArgumentException();
 			} else {
+				if (!text[i].equals(" ")) {
+					throw new RuntimeException("Coding error:" + text[i]);
+				}
 				ret.add(v);
 			}
 			i++;

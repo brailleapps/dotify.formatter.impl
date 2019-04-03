@@ -51,21 +51,19 @@ public class SegmentProcessorTest {
 		Context context = Mockito.mock(Context.class);
 		Segment t;
 		TextProperties tp = new TextProperties.Builder("und").build();
-		List<Segment> segments = new ArrayList<>();
-		List<Segment> expecteds = new ArrayList<>();
+		List<Segment> segments = new ArrayList<>();		
 		t = new TextSegment("abc", tp);
 		segments.add(t);
-		expecteds.add(t);
 		Style s = new Style("em");
 		segments.add(s);
 		t = new TextSegment("def", tp);
 		s.add(t);
-		expecteds.add(new TextSegment("xdefy", tp));
 		t = new TextSegment("ghi", tp);
 		segments.add(t);
-		expecteds.add(t);
 		MarkerProcessor mp = new DefaultMarkerProcessor.Builder().addDictionary("em", (str, ta)->new Marker("x", "y")).build();
 		List<Segment> actuals = SegmentProcessor.processStyles(segments, mp, context);
+		List<Segment> expecteds = new ArrayList<>();
+		expecteds.add(new TextSegment("abcxdefyghi", tp));
 		assertEquals(expecteds, actuals);
 	}
 	

@@ -11,6 +11,7 @@ import java.util.stream.Stream;
 
 import org.daisy.dotify.api.formatter.Context;
 import org.daisy.dotify.api.formatter.Marker;
+import org.daisy.dotify.api.formatter.TextProperties;
 import org.daisy.dotify.api.translator.BrailleTranslatorResult;
 import org.daisy.dotify.api.translator.DefaultTextAttribute;
 import org.daisy.dotify.api.translator.MarkerProcessor;
@@ -110,7 +111,7 @@ class SegmentProcessor implements SegmentProcessing {
 			String[] text = extractText(noStyles.stream(), context).toArray(String[]::new);
 			TextAttribute atts = buildTextAttribute(null, segments);
 			String[] newTexts = mp.processAttributesRetain(atts, text);
-			return updateSegments(noStyles, newTexts);
+			return mergeTextSegments(updateSegments(noStyles, newTexts));
 		}
 	}
 
@@ -197,6 +198,32 @@ class SegmentProcessor implements SegmentProcessing {
 		} else {
 			return new MarkerValue(in.substring(0, i), in.substring(i+1));
 		}
+	}
+	
+	private static List<Segment> mergeTextSegments(List<Segment> in) {
+		List<Segment> ret = new ArrayList<>();
+		Segment s;
+		TextSegment ts;
+		TextSegment ts2;
+		for (int i = 0;i<in.size();i++) {
+			s = in.get(i);
+			if (s.getSegmentType()==SegmentType.Text) {
+				ts = (TextSegment)s;
+				TextProperties tp = ts.getTextProperties();
+				StringBuilder sb = new StringBuilder();
+				sb.append(ts.getText());
+				while (i<in.size()-1 
+						&& in.get(i+1).getSegmentType()==SegmentType.Text 
+						&& (ts2 = (TextSegment)in.get(i+1)).getTextProperties().equals(tp)) {
+					sb.append(ts2.getText());
+					i++;
+				}
+				ret.add(new TextSegment(sb.toString(), tp));
+			} else {
+				ret.add(s);
+			}
+		}
+		return ret;
 	}
 	
 	private static boolean calculateSignificantContent(List<Segment> segments, Context context, RowDataProperties rdp) {

@@ -5,10 +5,17 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.daisy.dotify.api.formatter.Context;
 import org.daisy.dotify.api.formatter.Marker;
 import org.daisy.dotify.api.translator.BrailleTranslatorResult;
+import org.daisy.dotify.api.translator.DefaultTextAttribute;
+import org.daisy.dotify.api.translator.MarkerProcessor;
+import org.daisy.dotify.api.translator.MarkerProcessorConfigurationException;
+import org.daisy.dotify.api.translator.TextAttribute;
 import org.daisy.dotify.api.translator.Translatable;
 import org.daisy.dotify.api.translator.TranslationException;
 import org.daisy.dotify.formatter.impl.common.FormatterCoreContext;
@@ -22,10 +29,12 @@ import org.daisy.dotify.formatter.impl.segment.LeaderSegment;
 import org.daisy.dotify.formatter.impl.segment.MarkerSegment;
 import org.daisy.dotify.formatter.impl.segment.PageNumberReferenceSegment;
 import org.daisy.dotify.formatter.impl.segment.Segment;
+import org.daisy.dotify.formatter.impl.segment.Segment.SegmentType;
 import org.daisy.dotify.formatter.impl.segment.Style;
 import org.daisy.dotify.formatter.impl.segment.TextSegment;
 
 class SegmentProcessor implements SegmentProcessing {
+	private static final Logger logger = Logger.getLogger(SegmentProcessor.class.getCanonicalName());
 	private final List<Segment> segments;
 	private final CrossReferenceHandler refs;
 	private Context context;
@@ -51,14 +60,14 @@ class SegmentProcessor implements SegmentProcessing {
 	private String blockId;
 
 	SegmentProcessor(String blockId, List<Segment> segments, int flowWidth, CrossReferenceHandler refs, Context context, int available, BlockMargin margins, FormatterCoreContext fcontext, RowDataProperties rdp) {
-		this.segments = Collections.unmodifiableList(segments);
+		this.segments = Collections.unmodifiableList(processStyles(segments, getMarkerProcessor(fcontext), context));
 		this.refs = refs;
 		this.context = context;
 		this.groupMarkers = new ArrayList<>();
 		this.groupAnchors = new ArrayList<>();
 		this.groupIdentifiers = new ArrayList<>();
 		this.leaderManager = new LeaderManager();
-		this.significantContent = calculateSignificantContent(segments, context, rdp);
+		this.significantContent = calculateSignificantContent(this.segments, context, rdp);
 		this.spc = new SegmentProcessorContext(fcontext, rdp, margins, flowWidth, available);
 		this.blockId = blockId;
 		initFields();
@@ -89,6 +98,71 @@ class SegmentProcessor implements SegmentProcessing {
 		this.closed = template.closed;
 		this.significantContent = template.significantContent;
 		this.blockId = template.blockId;
+	}
+	
+	static List<Segment> processStyles(List<Segment> segments, MarkerProcessor mp, Context context) {
+		if (mp==null) {
+			// No styles without a marker processor...
+			return removeStyles(segments).collect(Collectors.toList());
+		} else {
+			String[] text = extractText(removeStyles(segments), context).toArray(String[]::new);
+			//Build TextAttribute
+			TextAttribute atts = buildTextAttribute(null, segments);
+			String[] newTexts = mp.processAttributesRetain(atts, text);
+			// Update text segments and resolve others...
+			return segments;
+		}
+	}
+
+	private static MarkerProcessor getMarkerProcessor(FormatterCoreContext fc) {
+		String locale = fc.getConfiguration().getLocale();
+		String mode = fc.getTranslatorMode();
+		try {
+			return fc.getMarkerProcessorFactoryMakerService().newMarkerProcessor(locale, mode);
+		} catch (MarkerProcessorConfigurationException e) {
+			logger.warning(String.format("No marker processor for %s/%s", locale, mode));
+			return null;
+		}
+	}
+	
+	private static Stream<Segment> removeStyles(List<Segment> segments) {
+		return segments.stream()
+				.flatMap(v->v.getSegmentType()==SegmentType.Style?removeStyles(((Style)v).getSegments()):Stream.of(v));
+	}
+	
+	private static Stream<String> extractText(Stream<Segment> in, Context context) {
+		return in.map(v->{
+			if (v.getSegmentType()==SegmentType.Text) {
+				return ((TextSegment)v).getText();
+			} else if (v.getSegmentType()==SegmentType.Style) {
+				throw new IllegalArgumentException();
+			} else {
+				return " ";
+			}
+		});
+	}
+	
+	private static TextAttribute buildTextAttribute(String name, List<Segment> in) {
+		DefaultTextAttribute.Builder b = new DefaultTextAttribute.Builder(name);
+		int w = 0;
+		for (Segment v : in) {
+			if (v.getSegmentType()==SegmentType.Text) {
+				TextSegment s = (TextSegment)v;
+				TextAttribute a = new DefaultTextAttribute.Builder().build(s.getText().length());
+				b.add(a);
+				w += a.getWidth();
+			} else if (v.getSegmentType()==SegmentType.Style) {
+				Style s = ((Style)v);
+				TextAttribute a = buildTextAttribute(s.getName(), s.getSegments());
+				b.add(a);
+				w += a.getWidth();
+			} else {
+				TextAttribute a = new DefaultTextAttribute.Builder().build(1);
+				b.add(a);
+				w += 1;
+			}
+		};
+		return new DefaultTextAttribute.Builder().build(w);
 	}
 	
 	private static boolean calculateSignificantContent(List<Segment> segments, Context context, RowDataProperties rdp) {
@@ -292,7 +366,7 @@ class SegmentProcessor implements SegmentProcessing {
 			)
 			.locale(ts.getTextProperties().getLocale())
 			.hyphenate(ts.getTextProperties().isHyphenating())
-			.attributes(ts.getTextAttribute()).build();
+			.build();
 			btr = toResult(spec, mode);
 			ts.storeResult(btr);
 		} else {

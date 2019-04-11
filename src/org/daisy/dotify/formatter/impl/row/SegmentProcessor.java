@@ -12,12 +12,11 @@ import java.util.stream.Stream;
 import org.daisy.dotify.api.formatter.Context;
 import org.daisy.dotify.api.formatter.Marker;
 import org.daisy.dotify.api.formatter.TextProperties;
+import org.daisy.dotify.api.translator.AttributeWithContext;
 import org.daisy.dotify.api.translator.BrailleTranslatorResult;
-import org.daisy.dotify.api.translator.DefaultTextAttribute;
-import org.daisy.dotify.api.translator.MarkerProcessor;
-import org.daisy.dotify.api.translator.MarkerProcessorConfigurationException;
-import org.daisy.dotify.api.translator.TextAttribute;
+import org.daisy.dotify.api.translator.DefaultAttributeWithContext;
 import org.daisy.dotify.api.translator.Translatable;
+import org.daisy.dotify.api.translator.TranslatableWithContext;
 import org.daisy.dotify.api.translator.TranslationException;
 import org.daisy.dotify.formatter.impl.common.FormatterCoreContext;
 import org.daisy.dotify.formatter.impl.row.RowImpl.Builder;
@@ -38,7 +37,8 @@ import org.daisy.dotify.formatter.impl.segment.TextSegment;
 class SegmentProcessor implements SegmentProcessing {
 	private static final Logger logger = Logger.getLogger(SegmentProcessor.class.getCanonicalName());
 	private final List<Segment> segments;
-	private final CrossReferenceHandler refs;
+	private final AttributeWithContext attr;
+
 	private Context context;
 	private final boolean significantContent;
 	private final SegmentProcessorContext spc;
@@ -62,8 +62,33 @@ class SegmentProcessor implements SegmentProcessing {
 	private String blockId;
 
 	SegmentProcessor(String blockId, List<Segment> segments, int flowWidth, CrossReferenceHandler refs, Context context, int available, BlockMargin margins, FormatterCoreContext fcontext, RowDataProperties rdp) {
-		this.segments = Collections.unmodifiableList(processStyles(segments, getMarkerProcessor(fcontext), context));
-		this.refs = refs;
+		this.segments = Collections.unmodifiableList(removeStyles(segments)
+				.map(v->{
+					//inject resolvers
+					if (v.getSegmentType()==SegmentType.Evaluate) {
+						Evaluate e = (Evaluate)v;
+						e.setResolver(()->e.getExpression().render(getContext()));
+					} else if (v.getSegmentType()==SegmentType.Reference) {
+						PageNumberReference rs = (PageNumberReference)v;
+						if (refs!=null) {
+							rs.setResolver(()->{
+								Integer page = refs.getPageNumber(rs.getRefId());
+								if (page==null) {
+									return "??";
+								} else {
+									return "" + rs.getNumeralStyle().format(page);
+								}
+							});
+						} else {
+							rs.setResolver(()->"??");
+						}
+					}
+					return v;
+				})
+				.collect(Collectors.toList()));
+		//FIXME:
+		this.attr = buildAttributeWithContext(null, segments);
+		//FIXME: "merge text segments"
 		this.context = context;
 		this.groupMarkers = new ArrayList<>();
 		this.groupAnchors = new ArrayList<>();
@@ -76,8 +101,6 @@ class SegmentProcessor implements SegmentProcessing {
 	}
 	
 	SegmentProcessor(SegmentProcessor template) {
-		// Refs is mutable, but for now we assume that the same context should be used.
-		this.refs = template.refs;
 		// Context is mutable, but for now we assume that the same context should be used.
 		this.context = template.context;
 		this.spc = template.spc;
@@ -95,47 +118,12 @@ class SegmentProcessor implements SegmentProcessing {
 		this.minRight = template.minRight;
 		this.empty  = template.empty;
 		this.segments = template.segments;
+		this.attr = template.attr;
 		this.segmentIndex = template.segmentIndex;
 		this.cr = template.cr!=null?template.cr.copy():null;
 		this.closed = template.closed;
 		this.significantContent = template.significantContent;
 		this.blockId = template.blockId;
-	}
-	
-	/**
-	 * Applies styles and remove them from further processing.
-	 * @param segments the segments to process
-	 * @param mp a marker processor, without one there's no need to do any processing
-	 * @param context the context
-	 * @return a list of segments without styles
-	 */
-	static List<Segment> processStyles(List<Segment> segments, MarkerProcessor mp, Context context) {
-		if (mp==null) {
-			// No styles without a marker processor...
-			return removeStyles(segments).collect(Collectors.toList());
-		} else {
-			List<Segment> noStyles = removeStyles(segments).collect(Collectors.toList());
-			String[] text = extractText(noStyles.stream(), context).toArray(String[]::new);
-			TextAttribute atts = buildTextAttribute(null, segments);
-			String[] newTexts = mp.processAttributesRetain(atts, text);
-			return mergeTextSegments(updateSegments(noStyles, newTexts));
-		}
-	}
-
-	/**
-	 * Gets a marker processor from the formatter context.
-	 * @param fc the formatter context
-	 * @return a marker processor, or null if none is found.
-	 */
-	private static MarkerProcessor getMarkerProcessor(FormatterCoreContext fc) {
-		String locale = fc.getConfiguration().getLocale();
-		String mode = fc.getTranslatorMode();
-		try {
-			return fc.getMarkerProcessorFactoryMakerService().newMarkerProcessor(locale, mode);
-		} catch (MarkerProcessorConfigurationException e) {
-			logger.warning(String.format("No marker processor for %s/%s", locale, mode));
-			return null;
-		}
 	}
 	
 	/**
@@ -181,8 +169,8 @@ class SegmentProcessor implements SegmentProcessing {
 	 * @param in the segments
 	 * @return a text attribute
 	 */
-	private static TextAttribute buildTextAttribute(String name, List<Segment> in) {
-		DefaultTextAttribute.Builder b;
+	private static AttributeWithContext buildAttributeWithContext(String name, List<Segment> in) {
+		DefaultAttributeWithContext.Builder b;
 		// Trim style scope
 		int start = -1;
 		int end = -1;
@@ -206,44 +194,38 @@ class SegmentProcessor implements SegmentProcessing {
 			trimStart = start>0 && in.size()>1;
 			trimEnd = end<in.size()-1 && in.size()>1;
 			if (trimStart) {
-				b = new DefaultTextAttribute.Builder();
+				b = new DefaultAttributeWithContext.Builder();
 			} else {
-				b = new DefaultTextAttribute.Builder(name);
+				b = new DefaultAttributeWithContext.Builder(name);
 			}
 		} else {
-			b = new DefaultTextAttribute.Builder();
+			b = new DefaultAttributeWithContext.Builder();
 		}
 		i = 0;
 		int sw = 0;
 		int w = 0;
 		for (Segment v : in) {
 			if (trimStart && i==start) {
-				DefaultTextAttribute.Builder c = b;
-				b = new DefaultTextAttribute.Builder(name);
+				DefaultAttributeWithContext.Builder c = b;
+				b = new DefaultAttributeWithContext.Builder(name);
 				b.add(c.build(sw));
 				sw = 0;
 			}
-			if (v.getSegmentType()==SegmentType.Text) {
-				TextSegment s = (TextSegment)v;
-				TextAttribute a = new DefaultTextAttribute.Builder().build(s.getText().length());
-				b.add(a);
-				w += a.getWidth();
-				sw += a.getWidth();
-			} else if (v.getSegmentType()==SegmentType.Style) {
+			if (v.getSegmentType()==SegmentType.Style) {
 				Style s = ((Style)v);
-				TextAttribute a = buildTextAttribute(s.getName(), s.getSegments());
+				AttributeWithContext a = buildAttributeWithContext(s.getName(), s.getSegments());
 				b.add(a);
 				w += a.getWidth();
 				sw += a.getWidth();
 			} else {
-				TextAttribute a = new DefaultTextAttribute.Builder().build(1);
+				DefaultAttributeWithContext a = new DefaultAttributeWithContext.Builder().build(1);
 				b.add(a);
-				w += 1;
-				sw += 1;
+				w ++;
+				sw ++;
 			}
 			if (trimEnd && i==end) {
-				DefaultTextAttribute.Builder c = b;
-				b = new DefaultTextAttribute.Builder();
+				DefaultAttributeWithContext.Builder c = b;
+				b = new DefaultAttributeWithContext.Builder();
 				b.add(c.build(sw));
 				sw = 0;
 			}
@@ -335,7 +317,7 @@ class SegmentProcessor implements SegmentProcessing {
 		return ret;
 	}
 	
-	private static boolean calculateSignificantContent(List<Segment> segments, Context context, RowDataProperties rdp) {
+	private static boolean calculateSignificantContent(Iterable<Segment> segments, Context context, RowDataProperties rdp) {
 		for (Segment s : segments) {
 			switch (s.getSegmentType()) {
 				case Marker:
@@ -530,12 +512,11 @@ class SegmentProcessor implements SegmentProcessing {
 		String mode = ts.getTextProperties().getTranslationMode();
 		BrailleTranslatorResult btr = null;
 		if (!ts.canMakeResult()) {
-			Translatable spec = Translatable.text(
-					spc.getFormatterContext().getConfiguration().isMarkingCapitalLetters()?
-					ts.getText():ts.getText().toLowerCase()
-			)
+			TranslatableWithContext spec = TranslatableWithContext.from(segments, segmentIndex-1)
+			.markCapitalLetters(spc.getFormatterContext().getConfiguration().isMarkingCapitalLetters())
 			.locale(ts.getTextProperties().getLocale())
 			.hyphenate(ts.getTextProperties().isHyphenating())
+			.attributes(attr)
 			.build();
 			btr = toResult(spec, mode);
 			ts.storeResult(btr);
@@ -563,20 +544,13 @@ class SegmentProcessor implements SegmentProcessing {
 	}
 
 	private Optional<CurrentResult> layoutPageSegment(PageNumberReference rs) {
-		Integer page = null;
-		if (refs!=null) {
-			page = refs.getPageNumber(rs.getRefId());
-		}
 		//TODO: translate references using custom language?
-		Translatable spec;
-		if (page==null) {
-			spec = Translatable.text(rs.applyMarker("??")).locale(null).build();
-		} else {
-			String txt = rs.applyMarker("" + rs.getNumeralStyle().format(page));
-			spec = Translatable.text(
-					spc.getFormatterContext().getConfiguration().isMarkingCapitalLetters()?txt:txt.toLowerCase()
-					).locale(null).build();
-		}
+		TranslatableWithContext spec;
+		spec = TranslatableWithContext.from(segments, segmentIndex-1)
+				.markCapitalLetters(spc.getFormatterContext().getConfiguration().isMarkingCapitalLetters())
+				.locale(null)
+				.attributes(attr)
+				.build();
 		if (leaderManager.hasLeader()) {
 			layoutAfterLeader(spec, null);
 		} else {
@@ -589,13 +563,14 @@ class SegmentProcessor implements SegmentProcessing {
 	}
 	
 	private Optional<CurrentResult> layoutEvaluate(Evaluate e) {
-		String txt = e.applyMarker(e.getExpression().render(context));
-		if (!txt.isEmpty()) { // Don't create a new row if the evaluated expression is empty
+		if (!e.peek().isEmpty()) { // Don't create a new row if the evaluated expression is empty
 		                    // Note: this could be handled more generally (also for regular text) in layout().
-			Translatable spec = Translatable.text(spc.getFormatterContext().getConfiguration().isMarkingCapitalLetters()?txt:txt.toLowerCase()).
-					locale(e.getTextProperties().getLocale()).
-					hyphenate(e.getTextProperties().isHyphenating()).
-					build();
+			TranslatableWithContext spec = TranslatableWithContext.from(segments, segmentIndex-1)
+					.markCapitalLetters(spc.getFormatterContext().getConfiguration().isMarkingCapitalLetters())
+					.locale(e.getTextProperties().getLocale())
+					.hyphenate(e.getTextProperties().isHyphenating())
+					.attributes(attr)
+					.build();
 			if (leaderManager.hasLeader()) {
 				layoutAfterLeader(spec, null);
 			} else {
@@ -608,7 +583,7 @@ class SegmentProcessor implements SegmentProcessing {
 		return Optional.empty(); 
 	}
 	
-	private void layoutAfterLeader(Translatable spec, String mode) {
+	private void layoutAfterLeader(TranslatableWithContext spec, String mode) {
 		layoutAfterLeader(toResult(spec, mode), mode);
 	}
 
@@ -704,6 +679,14 @@ class SegmentProcessor implements SegmentProcessing {
 			return spc.getFormatterContext().getTranslator(mode).translate(spec);
 		} catch (TranslationException e) {
 			throw new RuntimeException(e);
+		}
+	}
+	
+	private BrailleTranslatorResult toResult(TranslatableWithContext spec, String mode) {
+		try {
+			return spc.getFormatterContext().getTranslator(mode).translate(spec);
+		} catch (TranslationException e) {
+			throw new RuntimeException(e);
 		}		
 	}
 
@@ -728,6 +711,10 @@ class SegmentProcessor implements SegmentProcessing {
 	
 	void setContext(DefaultContext context) {
 		this.context = context;
+	}
+	
+	private Context getContext() {
+		return context;
 	}
 	
 	int getForceCount() {

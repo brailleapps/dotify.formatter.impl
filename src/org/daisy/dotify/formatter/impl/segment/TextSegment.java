@@ -76,4 +76,19 @@ public class TextSegment implements Segment {
 		return true;
 	}
 
+	@Override
+	public String peek() {
+		return chars;
+	}
+
+	@Override
+	public String resolve() {
+		return chars;
+	}
+
+	@Override
+	public boolean isStatic() {
+		return true;
+	}
+
 }

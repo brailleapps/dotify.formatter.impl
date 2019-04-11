@@ -1,5 +1,7 @@
 package org.daisy.dotify.formatter.impl.segment;
 
+import java.util.function.Supplier;
+
 import org.daisy.dotify.api.formatter.DynamicContent;
 import org.daisy.dotify.api.formatter.TextProperties;
 
@@ -13,6 +15,8 @@ import org.daisy.dotify.api.formatter.TextProperties;
 public class Evaluate extends SegmentBase {
 	private final DynamicContent expression;
 	private final TextProperties props;
+	private Supplier<String> v = ()->"";
+	private String resolved;
 	
 	/**
 	 * @param expression the expression
@@ -79,5 +83,29 @@ public class Evaluate extends SegmentBase {
 		return true;
 	}
 
-	
+	@Override
+	public String peek() {
+		return resolved==null?v.get():resolved;
+	}
+
+	@Override
+	public String resolve() {
+		if (resolved==null) {
+			resolved = v.get();
+			if (resolved == null) {
+				resolved = "";
+			}
+		}
+		return resolved;
+	}
+
+	public void setResolver(Supplier<String> v) {
+		this.resolved = null;
+		this.v = v;
+	}
+
+	@Override
+	public boolean isStatic() {
+		return false;
+	}
 }

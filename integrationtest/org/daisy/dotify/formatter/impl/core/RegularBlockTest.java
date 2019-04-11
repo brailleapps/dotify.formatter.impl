@@ -9,24 +9,24 @@ import org.daisy.dotify.api.formatter.Context;
 import org.daisy.dotify.api.formatter.DynamicContent;
 import org.daisy.dotify.api.formatter.FormatterConfiguration;
 import org.daisy.dotify.api.formatter.TextProperties;
-import org.daisy.dotify.api.translator.BrailleTranslatorFactoryMaker;
-import org.daisy.dotify.api.translator.MarkerProcessor;
-import org.daisy.dotify.api.translator.MarkerProcessorConfigurationException;
-import org.daisy.dotify.api.translator.MarkerProcessorFactoryMakerService;
+import org.daisy.dotify.api.translator.BrailleTranslatorFactoryMakerService;
 import org.daisy.dotify.api.translator.TextAttribute;
 import org.daisy.dotify.api.translator.TranslatorConfigurationException;
+import org.daisy.dotify.common.text.IdentityFilter;
 import org.daisy.dotify.formatter.impl.row.AbstractBlockContentManager;
-import org.daisy.dotify.formatter.impl.row.RowDataProperties;
 import org.daisy.dotify.formatter.impl.search.DefaultContext;
+import org.daisy.dotify.translator.DefaultBrailleFilter;
 import org.daisy.dotify.translator.DefaultMarkerProcessor;
 import org.daisy.dotify.translator.Marker;
+import org.daisy.dotify.translator.SimpleBrailleTranslator;
+import org.daisy.dotify.translator.impl.DefaultBrailleFinalizer;
 import org.junit.Test;
 import org.mockito.Mockito;
 
 public class RegularBlockTest {
 
 	@Test
-	public void testConnectedStyles() throws MarkerProcessorConfigurationException, TranslatorConfigurationException {
+	public void testConnectedStyles() throws TranslatorConfigurationException {
 		String loc = "sv-SE";
 		String mode = "bypass";
 		TextProperties tp = new TextProperties.Builder(loc).hyphenate(false).build();
@@ -42,18 +42,22 @@ public class RegularBlockTest {
 				return render(new Context() {});
 			}
 		};
-	
-		MarkerProcessorFactoryMakerService mpf = Mockito.mock(MarkerProcessorFactoryMakerService.class);
-		MarkerProcessor mp = new DefaultMarkerProcessor.Builder()
+		
+		DefaultMarkerProcessor mp = new DefaultMarkerProcessor.Builder()
 				.addDictionary("em", (String str, TextAttribute attributes)->new Marker("1>", "<1"))
 				.addDictionary("strong", (String str, TextAttribute attributes)->new Marker("2>", "<2"))
 				.build();
-		Mockito.when(mpf.newMarkerProcessor(loc, mode)).thenReturn(mp);
-
+		
+		SimpleBrailleTranslator trr = new SimpleBrailleTranslator(
+				new DefaultBrailleFilter(new IdentityFilter(), loc, mp, null),
+				new DefaultBrailleFinalizer(), mode);
+		BrailleTranslatorFactoryMakerService sr = Mockito.mock(BrailleTranslatorFactoryMakerService.class);
+		Mockito.when(sr.newTranslator(loc, mode)).thenReturn(trr);
+		
 		FormatterContext fc = new FormatterContext(
-				BrailleTranslatorFactoryMaker.newInstance(),
+				sr,
 				null,
-				mpf,
+				null,
 				new FormatterConfiguration.Builder(loc, mode).build());
 
 		FormatterCoreImpl f = new FormatterCoreImpl(fc);

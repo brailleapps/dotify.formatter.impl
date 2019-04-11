@@ -37,6 +37,7 @@ import org.daisy.dotify.formatter.impl.segment.TextSegment;
 class SegmentProcessor implements SegmentProcessing {
 	private static final Logger logger = Logger.getLogger(SegmentProcessor.class.getCanonicalName());
 	private final List<Segment> segments;
+	private final CrossReferenceHandler refs;
 	private final AttributeWithContext attr;
 
 	private Context context;
@@ -62,30 +63,8 @@ class SegmentProcessor implements SegmentProcessing {
 	private String blockId;
 
 	SegmentProcessor(String blockId, List<Segment> segments, int flowWidth, CrossReferenceHandler refs, Context context, int available, BlockMargin margins, FormatterCoreContext fcontext, RowDataProperties rdp) {
-		this.segments = Collections.unmodifiableList(removeStyles(segments)
-				.map(v->{
-					//inject resolvers
-					if (v.getSegmentType()==SegmentType.Evaluate) {
-						Evaluate e = (Evaluate)v;
-						e.setResolver(()->e.getExpression().render(getContext()));
-					} else if (v.getSegmentType()==SegmentType.Reference) {
-						PageNumberReference rs = (PageNumberReference)v;
-						if (refs!=null) {
-							rs.setResolver(()->{
-								Integer page = refs.getPageNumber(rs.getRefId());
-								if (page==null) {
-									return "??";
-								} else {
-									return "" + rs.getNumeralStyle().format(page);
-								}
-							});
-						} else {
-							rs.setResolver(()->"??");
-						}
-					}
-					return v;
-				})
-				.collect(Collectors.toList()));
+		this.refs = refs;
+		this.segments = Collections.unmodifiableList(removeStyles(segments).collect(Collectors.toList()));
 		//FIXME:
 		this.attr = buildAttributeWithContext(null, segments);
 		//FIXME: "merge text segments"
@@ -101,6 +80,8 @@ class SegmentProcessor implements SegmentProcessing {
 	}
 	
 	SegmentProcessor(SegmentProcessor template) {
+		// Refs is mutable, but for now we assume that the same context should be used.
+		this.refs = template.refs;
 		// Context is mutable, but for now we assume that the same context should be used.
 		this.context = template.context;
 		this.spc = template.spc;
@@ -169,7 +150,7 @@ class SegmentProcessor implements SegmentProcessing {
 	 * @param in the segments
 	 * @return a text attribute
 	 */
-	private static AttributeWithContext buildAttributeWithContext(String name, List<Segment> in) {
+	private static DefaultAttributeWithContext buildAttributeWithContext(String name, List<Segment> in) {
 		DefaultAttributeWithContext.Builder b;
 		// Trim style scope
 		int start = -1;
@@ -213,7 +194,7 @@ class SegmentProcessor implements SegmentProcessing {
 			}
 			if (v.getSegmentType()==SegmentType.Style) {
 				Style s = ((Style)v);
-				AttributeWithContext a = buildAttributeWithContext(s.getName(), s.getSegments());
+				DefaultAttributeWithContext a = buildAttributeWithContext(s.getName(), s.getSegments());
 				b.add(a);
 				w += a.getWidth();
 				sw += a.getWidth();
@@ -544,6 +525,18 @@ class SegmentProcessor implements SegmentProcessing {
 	}
 
 	private Optional<CurrentResult> layoutPageSegment(PageNumberReference rs) {
+		if (refs!=null) {
+			rs.setResolver(()->{
+				Integer page = refs.getPageNumber(rs.getRefId());
+				if (page==null) {
+					return "??";
+				} else {
+					return "" + rs.getNumeralStyle().format(page);
+				}
+			});
+		} else {
+			rs.setResolver(()->"??");
+		}
 		//TODO: translate references using custom language?
 		TranslatableWithContext spec;
 		spec = TranslatableWithContext.from(segments, segmentIndex-1)
@@ -563,6 +556,7 @@ class SegmentProcessor implements SegmentProcessing {
 	}
 	
 	private Optional<CurrentResult> layoutEvaluate(Evaluate e) {
+		e.setResolver(()->e.getExpression().render(getContext()));
 		if (!e.peek().isEmpty()) { // Don't create a new row if the evaluated expression is empty
 		                    // Note: this could be handled more generally (also for regular text) in layout().
 			TranslatableWithContext spec = TranslatableWithContext.from(segments, segmentIndex-1)

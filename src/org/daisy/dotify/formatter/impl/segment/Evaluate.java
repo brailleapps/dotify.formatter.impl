@@ -12,7 +12,7 @@ import org.daisy.dotify.api.formatter.TextProperties;
  * @author Joel Håkansson
  *
  */
-public class Evaluate extends SegmentBase {
+public class Evaluate implements Segment {
 	private final DynamicContent expression;
 	private final TextProperties props;
 	private Supplier<String> v = ()->"";
@@ -27,7 +27,6 @@ public class Evaluate extends SegmentBase {
 	}
 
 	public Evaluate(DynamicContent expression, TextProperties props, MarkerValue marker) {
-		super(marker);
 		this.expression = expression;
 		this.props = props;
 	}
@@ -48,7 +47,7 @@ public class Evaluate extends SegmentBase {
 	@Override
 	public int hashCode() {
 		final int prime = 31;
-		int result = super.hashCode();
+		int result = 1;
 		result = prime * result + ((expression == null) ? 0 : expression.hashCode());
 		result = prime * result + ((props == null) ? 0 : props.hashCode());
 		return result;
@@ -59,7 +58,7 @@ public class Evaluate extends SegmentBase {
 		if (this == obj) {
 			return true;
 		}
-		if (!super.equals(obj)) {
+		if (obj == null) {
 			return false;
 		}
 		if (getClass() != obj.getClass()) {

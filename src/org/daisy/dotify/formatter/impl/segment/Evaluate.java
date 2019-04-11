@@ -15,7 +15,7 @@ import org.daisy.dotify.api.formatter.TextProperties;
 public class Evaluate implements Segment {
 	private final DynamicContent expression;
 	private final TextProperties props;
-	private Supplier<String> v;
+	private Supplier<String> v = ()->"";
 	private String resolved;
 	
 	/**

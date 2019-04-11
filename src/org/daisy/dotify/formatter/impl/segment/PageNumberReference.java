@@ -13,7 +13,7 @@ import org.daisy.dotify.api.formatter.NumeralStyle;
 public class PageNumberReference implements Segment {
 	private final String refid;
 	private final NumeralStyle style;
-	private Supplier<String> v;
+	private Supplier<String> v=()->"";
 	private String resolved;
 	
 	public PageNumberReference(String refid, NumeralStyle style) {

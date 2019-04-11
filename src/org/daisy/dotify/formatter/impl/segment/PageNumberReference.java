@@ -10,7 +10,7 @@ import org.daisy.dotify.api.formatter.NumeralStyle;
  * 
  * @author Joel Håkansson
  */
-public class PageNumberReference extends SegmentBase {
+public class PageNumberReference implements Segment {
 	private final String refid;
 	private final NumeralStyle style;
 	private Supplier<String> v;
@@ -21,7 +21,6 @@ public class PageNumberReference extends SegmentBase {
 	}
 	
 	public PageNumberReference(String refid, NumeralStyle style, MarkerValue marker) {
-		super(marker);
 		this.refid = refid;
 		this.style = style;
 	}
@@ -50,7 +49,7 @@ public class PageNumberReference extends SegmentBase {
 	@Override
 	public int hashCode() {
 		final int prime = 31;
-		int result = super.hashCode();
+		int result = 1;
 		result = prime * result + ((refid == null) ? 0 : refid.hashCode());
 		result = prime * result + ((style == null) ? 0 : style.hashCode());
 		return result;
@@ -61,7 +60,7 @@ public class PageNumberReference extends SegmentBase {
 		if (this == obj) {
 			return true;
 		}
-		if (!super.equals(obj)) {
+		if (obj == null) {
 			return false;
 		}
 		if (getClass() != obj.getClass()) {

@@ -1,6 +1,5 @@
 package org.daisy.dotify.formatter.test;
 
-import java.io.File;
 import java.io.IOException;
 
 import org.daisy.dotify.api.engine.LayoutEngineException;
@@ -16,7 +15,7 @@ public class RowByRowTest extends AbstractFormatterEngineTest {
 	
 	@Test
 	public void testCurrentPage_02() throws LayoutEngineException, IOException, PagedMediaWriterConfigurationException {
-		testPEF("resource-files/current-page2-input.obfl", "resource-files/current-page2-expected.pef", new File("out.pef"));
+		testPEF("resource-files/current-page2-input.obfl", "resource-files/current-page2-expected.pef", false);
 	}
 
 }

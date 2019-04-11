@@ -1,5 +1,7 @@
 package org.daisy.dotify.formatter.impl.segment;
 
+import java.util.function.Supplier;
+
 import org.daisy.dotify.api.formatter.NumeralStyle;
 
 
@@ -11,6 +13,8 @@ import org.daisy.dotify.api.formatter.NumeralStyle;
 public class PageNumberReference extends SegmentBase {
 	private final String refid;
 	private final NumeralStyle style;
+	private Supplier<String> v=()->"";
+	private String resolved;
 	
 	public PageNumberReference(String refid, NumeralStyle style) {
 		this(refid, style, null);
@@ -76,5 +80,32 @@ public class PageNumberReference extends SegmentBase {
 		}
 		return true;
 	}
+
+	@Override
+	public String peek() {
+		return resolved==null?"00":resolved;
+	}
+
+	@Override
+	public String resolve() {
+		if (resolved==null) {
+			resolved = v.get();
+			if (resolved == null) {
+				resolved = "";
+			}
+		}
+		return resolved;
+	}
+	
+	public void setResolver(Supplier<String> v) {
+		this.resolved = null;
+		this.v = v;
+	}
+	
+	@Override
+	public boolean isStatic() {
+		return false;
+	}
+
 
 }

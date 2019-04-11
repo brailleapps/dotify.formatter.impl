@@ -53,4 +53,20 @@ public class Style implements Segment {
 	public SegmentType getSegmentType() {
 		return SegmentType.Style;
 	}
+
+	@Override
+	public String peek() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public String resolve() {
+		throw new UnsupportedOperationException();
+	}
+	
+	@Override
+	public boolean isStatic() {
+		throw new UnsupportedOperationException();
+	}
+
 }

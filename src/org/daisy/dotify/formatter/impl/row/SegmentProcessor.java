@@ -11,7 +11,6 @@ import java.util.stream.Stream;
 
 import org.daisy.dotify.api.formatter.Context;
 import org.daisy.dotify.api.formatter.Marker;
-import org.daisy.dotify.api.formatter.TextProperties;
 import org.daisy.dotify.api.translator.AttributeWithContext;
 import org.daisy.dotify.api.translator.BrailleTranslatorResult;
 import org.daisy.dotify.api.translator.DefaultAttributeWithContext;
@@ -27,7 +26,6 @@ import org.daisy.dotify.formatter.impl.segment.Evaluate;
 import org.daisy.dotify.formatter.impl.segment.IdentifierSegment;
 import org.daisy.dotify.formatter.impl.segment.LeaderSegment;
 import org.daisy.dotify.formatter.impl.segment.MarkerSegment;
-import org.daisy.dotify.formatter.impl.segment.MarkerValue;
 import org.daisy.dotify.formatter.impl.segment.PageNumberReference;
 import org.daisy.dotify.formatter.impl.segment.Segment;
 import org.daisy.dotify.formatter.impl.segment.Segment.SegmentType;
@@ -117,25 +115,7 @@ class SegmentProcessor implements SegmentProcessing {
 		return segments.stream()
 				.flatMap(v->v.getSegmentType()==SegmentType.Style?removeStyles(((Style)v).getSegments()):Stream.of(v));
 	}
-	
-	/**
-	 * Extracts the text from a stream of segments. Style segments are not allowed.
-	 * @param in the segment stream
-	 * @param context the context
-	 * @return a stream of strings, one per input segment
-	 */
-	private static Stream<String> extractText(Stream<Segment> in, Context context) {
-		return in.map(v->{
-			if (v.getSegmentType()==SegmentType.Text) {
-				return ((TextSegment)v).getText();
-			} else if (v.getSegmentType()==SegmentType.Style) {
-				throw new IllegalArgumentException();
-			} else {
-				return " ";
-			}
-		});
-	}
-	
+
 	/**
 	 * <p>Builds a text attribute for the input segments with the specified name.
 	 * Style segments will be mapped into named text attributes which can
@@ -213,89 +193,6 @@ class SegmentProcessor implements SegmentProcessing {
 			i++;
 		}
 		return b.build(w);
-	}
-	
-	/**
-	 * Creates a new list of segments based on an input list of segments and an
-	 * string array of the same length. The attributes of the segments are copied
-	 * over together with the text at the corresponding location in the string array.
-	 * @param in the list of segments
-	 * @param text the text array
-	 * @return a list of segments
-	 */
-	private static List<Segment> updateSegments(List<Segment> in, String[] text) {
-		List<Segment> ret = new ArrayList<>();
-		int i = 0;
-		for (Segment v : in) {
-			if (v.getSegmentType()==SegmentType.Text) {
-				TextSegment s = (TextSegment)v;
-				ret.add(new TextSegment(text[i], s.getTextProperties()));
-			} else if (v.getSegmentType()==SegmentType.Evaluate) { 
-				Evaluate s = (Evaluate)v;
-				MarkerValue mv = extractMarkerValue(text[i]);
-				ret.add(new Evaluate(s.getExpression(), s.getTextProperties(), mv));
-			} else if (v.getSegmentType()==SegmentType.Reference) { 
-				PageNumberReference s = (PageNumberReference)v;
-				MarkerValue mv = extractMarkerValue(text[i]);
-				ret.add(new PageNumberReference(s.getRefId(), s.getNumeralStyle(), mv));
-			} else if (v.getSegmentType()==SegmentType.Style) {
-				throw new IllegalArgumentException();
-			} else {
-				if (!text[i].equals(" ")) {
-					throw new RuntimeException("Coding error:" + text[i]);
-				}
-				ret.add(v);
-			}
-			i++;
-		}
-		return ret;
-	}
-	
-	/**
-	 * Extracts a marker value from an input string. The input string should have
-	 * a space character separating the pre- and postfix. If there is no 
-	 * space character, null is returned
-	 * @param in the input string
-	 * @return a marker value, or null
-	 */
-	private static MarkerValue extractMarkerValue(String in) {
-		int i = in.indexOf(' ');
-		if (i<0) {
-			return null;
-		} else {
-			return new MarkerValue(in.substring(0, i), in.substring(i+1));
-		}
-	}
-	
-	/**
-	 * Merges consecutive text segments with identical properties.
-	 * @param in the segments
-	 * @return a list of segments
-	 */
-	private static List<Segment> mergeTextSegments(List<Segment> in) {
-		List<Segment> ret = new ArrayList<>();
-		Segment s;
-		TextSegment ts;
-		TextSegment ts2;
-		for (int i = 0;i<in.size();i++) {
-			s = in.get(i);
-			if (s.getSegmentType()==SegmentType.Text) {
-				ts = (TextSegment)s;
-				TextProperties tp = ts.getTextProperties();
-				StringBuilder sb = new StringBuilder();
-				sb.append(ts.getText());
-				while (i<in.size()-1 
-						&& in.get(i+1).getSegmentType()==SegmentType.Text 
-						&& (ts2 = (TextSegment)in.get(i+1)).getTextProperties().equals(tp)) {
-					sb.append(ts2.getText());
-					i++;
-				}
-				ret.add(new TextSegment(sb.toString(), tp));
-			} else {
-				ret.add(s);
-			}
-		}
-		return ret;
 	}
 	
 	private static boolean calculateSignificantContent(Iterable<Segment> segments, Context context, RowDataProperties rdp) {

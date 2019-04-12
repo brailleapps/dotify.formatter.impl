@@ -63,9 +63,7 @@ class SegmentProcessor implements SegmentProcessing {
 	SegmentProcessor(String blockId, List<Segment> segments, int flowWidth, CrossReferenceHandler refs, Context context, int available, BlockMargin margins, FormatterCoreContext fcontext, RowDataProperties rdp) {
 		this.refs = refs;
 		this.segments = Collections.unmodifiableList(removeStyles(segments).collect(Collectors.toList()));
-		//FIXME:
 		this.attr = buildAttributeWithContext(null, segments);
-		//FIXME: "merge text segments"
 		this.context = context;
 		this.groupMarkers = new ArrayList<>();
 		this.groupAnchors = new ArrayList<>();
@@ -247,12 +245,17 @@ class SegmentProcessor implements SegmentProcessing {
 		getNext(false, LineProperties.DEFAULT);
 	}
 
-	boolean couldTriggerNewRow() {
+	private boolean couldTriggerNewRow() {
 		if (!hasSegments()) {
 			//There's a lot of conditions to keep track of here, but hopefully we can simplify later on
 			return !closed && (currentRow!=null || !empty && spc.getRdp().getUnderlineStyle()!=null || leaderManager.hasLeader());
 		}
-		Segment s = segments.get(segmentIndex);
+		
+		return couldTriggerNewRow(segmentIndex);
+	}
+	
+	private boolean couldTriggerNewRow(int index) {
+		Segment s = segments.get(index);
 		switch (s.getSegmentType()) {
 			case Marker:
 			case Anchor:
@@ -261,10 +264,28 @@ class SegmentProcessor implements SegmentProcessing {
 			case Evaluate:
 				return !((Evaluate)s).getExpression().render(context).isEmpty();
 			case Text:
-				return !((TextSegment)s).getText().isEmpty();
+				if (((TextSegment)s).getText().isEmpty()) {
+					TextSegment ts = (TextSegment)s;
+					if (canMergeWithSegmentAtIndex(ts, index+1)) {
+						return couldTriggerNewRow(index+1);
+					} else {
+						return false;
+					}
+				} else {
+					return true;
+				}
 			default:
 				return true;
 		}
+	}
+	
+	private boolean canMergeWithSegmentAtIndex(TextSegment ts, int index) {
+		return	// There's a next segment
+				index<segments.size()  
+				// and that segment is a text segment
+				&& segments.get(index).getSegmentType()==SegmentType.Text 
+				// and it has the same properties
+				&& ((TextSegment)segments.get(index)).getTextProperties()==ts.getTextProperties();
 	}
 
 	boolean hasMoreData() {
@@ -339,7 +360,14 @@ class SegmentProcessor implements SegmentProcessing {
 				//flush
 				return Optional.of(new NewLineResult(spc, layoutLeader()));
 			case Text:
-				return layoutTextSegment((TextSegment)s);
+				int len = 1;
+				int fromIndex = segmentIndex-1;
+				TextSegment ts = (TextSegment)s;
+				while (canMergeWithSegmentAtIndex(ts, segmentIndex)) {
+					len++;
+					segmentIndex++;
+				}
+				return layoutTextSegment(ts, fromIndex, len);
 			case Leader:
 				return layoutLeaderSegment((LeaderSegment)s);
 			case Reference:
@@ -386,11 +414,12 @@ class SegmentProcessor implements SegmentProcessing {
 		return r;
 	}
 
-	private Optional<CurrentResult> layoutTextSegment(TextSegment ts) {
+	private Optional<CurrentResult> layoutTextSegment(TextSegment ts, int fromIndex, int length) {
 		String mode = ts.getTextProperties().getTranslationMode();
 		BrailleTranslatorResult btr = null;
 		if (!ts.canMakeResult()) {
-			TranslatableWithContext spec = TranslatableWithContext.from(segments, segmentIndex-1)
+			int toIndex = fromIndex+length;
+			TranslatableWithContext spec = TranslatableWithContext.from(segments, fromIndex, toIndex)
 			.markCapitalLetters(spc.getFormatterContext().getConfiguration().isMarkingCapitalLetters())
 			.locale(ts.getTextProperties().getLocale())
 			.hyphenate(ts.getTextProperties().isHyphenating())

@@ -1,5 +1,6 @@
 package org.daisy.dotify.formatter.impl.segment;
 
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import org.daisy.dotify.api.formatter.DynamicContent;
@@ -33,10 +34,6 @@ public class Evaluate implements Segment {
 	
 	public DynamicContent getExpression() {
 		return expression;
-	}
-
-	public TextProperties getTextProperties() {
-		return props;
 	}
 
 	@Override
@@ -107,4 +104,15 @@ public class Evaluate implements Segment {
 	public boolean isStatic() {
 		return false;
 	}
+	
+	@Override
+	public Optional<String> getLocale() {
+		return Optional.of(props.getLocale());
+	}
+
+	@Override
+	public boolean shouldHyphenate() {
+		return props.isHyphenating();
+	}
+
 }

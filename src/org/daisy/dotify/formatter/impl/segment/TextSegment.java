@@ -1,5 +1,7 @@
 package org.daisy.dotify.formatter.impl.segment;
 
+import java.util.Optional;
+
 import org.daisy.dotify.api.formatter.TextProperties;
 import org.daisy.dotify.api.translator.BrailleTranslatorResult;
 
@@ -89,6 +91,16 @@ public class TextSegment implements Segment {
 	@Override
 	public boolean isStatic() {
 		return true;
+	}
+
+	@Override
+	public Optional<String> getLocale() {
+		return Optional.of(tp.getLocale());
+	}
+
+	@Override
+	public boolean shouldHyphenate() {
+		return tp.isHyphenating();
 	}
 
 }

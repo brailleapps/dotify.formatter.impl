@@ -421,8 +421,6 @@ class SegmentProcessor implements SegmentProcessing {
 			int toIndex = fromIndex+length;
 			TranslatableWithContext spec = TranslatableWithContext.from(segments, fromIndex, toIndex)
 			.markCapitalLetters(spc.getFormatterContext().getConfiguration().isMarkingCapitalLetters())
-			.locale(ts.getTextProperties().getLocale())
-			.hyphenate(ts.getTextProperties().isHyphenating())
 			.attributes(attr)
 			.build();
 			btr = toResult(spec, mode);
@@ -467,7 +465,6 @@ class SegmentProcessor implements SegmentProcessing {
 		TranslatableWithContext spec;
 		spec = TranslatableWithContext.from(segments, segmentIndex-1)
 				.markCapitalLetters(spc.getFormatterContext().getConfiguration().isMarkingCapitalLetters())
-				.locale(null)
 				.attributes(attr)
 				.build();
 		if (leaderManager.hasLeader()) {
@@ -487,8 +484,6 @@ class SegmentProcessor implements SegmentProcessing {
 		                    // Note: this could be handled more generally (also for regular text) in layout().
 			TranslatableWithContext spec = TranslatableWithContext.from(segments, segmentIndex-1)
 					.markCapitalLetters(spc.getFormatterContext().getConfiguration().isMarkingCapitalLetters())
-					.locale(e.getTextProperties().getLocale())
-					.hyphenate(e.getTextProperties().isHyphenating())
 					.attributes(attr)
 					.build();
 			if (leaderManager.hasLeader()) {

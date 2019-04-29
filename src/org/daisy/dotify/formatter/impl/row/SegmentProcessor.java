@@ -5,7 +5,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -33,7 +32,6 @@ import org.daisy.dotify.formatter.impl.segment.Style;
 import org.daisy.dotify.formatter.impl.segment.TextSegment;
 
 class SegmentProcessor implements SegmentProcessing {
-	private static final Logger logger = Logger.getLogger(SegmentProcessor.class.getCanonicalName());
 	private final List<Segment> segments;
 	private final CrossReferenceHandler refs;
 	private final AttributeWithContext attr;
@@ -420,7 +418,6 @@ class SegmentProcessor implements SegmentProcessing {
 		if (!ts.canMakeResult()) {
 			int toIndex = fromIndex+length;
 			TranslatableWithContext spec = TranslatableWithContext.from(segments, fromIndex, toIndex)
-			.markCapitalLetters(spc.getFormatterContext().getConfiguration().isMarkingCapitalLetters())
 			.attributes(attr)
 			.build();
 			btr = toResult(spec, mode);
@@ -464,7 +461,6 @@ class SegmentProcessor implements SegmentProcessing {
 		//TODO: translate references using custom language?
 		TranslatableWithContext spec;
 		spec = TranslatableWithContext.from(segments, segmentIndex-1)
-				.markCapitalLetters(spc.getFormatterContext().getConfiguration().isMarkingCapitalLetters())
 				.attributes(attr)
 				.build();
 		if (leaderManager.hasLeader()) {
@@ -483,7 +479,6 @@ class SegmentProcessor implements SegmentProcessing {
 		if (!e.peek().isEmpty()) { // Don't create a new row if the evaluated expression is empty
 		                    // Note: this could be handled more generally (also for regular text) in layout().
 			TranslatableWithContext spec = TranslatableWithContext.from(segments, segmentIndex-1)
-					.markCapitalLetters(spc.getFormatterContext().getConfiguration().isMarkingCapitalLetters())
 					.attributes(attr)
 					.build();
 			if (leaderManager.hasLeader()) {

@@ -325,7 +325,7 @@ public class FormatterCoreImpl extends Stack<Block> implements FormatterCore, Bl
 			//list item has been used now, discard
 			listItem = null;
 		}
-		bl.addSegment(new TextSegment(c.toString(), p));
+		bl.addSegment(new TextSegment(c.toString(), p, fc.getConfiguration().isMarkingCapitalLetters()));
 	}
 
 	@Override
@@ -341,7 +341,7 @@ public class FormatterCoreImpl extends Stack<Block> implements FormatterCore, Bl
 		if (table!=null) {
 			throw new IllegalStateException("A table is open.");
 		}
-		PageNumberReference r = new PageNumberReference(identifier, numeralStyle);
+		PageNumberReference r = new PageNumberReference(identifier, numeralStyle, fc.getConfiguration().isMarkingCapitalLetters());
 		getCurrentBlock().addSegment(r);
 	}
 
@@ -350,7 +350,7 @@ public class FormatterCoreImpl extends Stack<Block> implements FormatterCore, Bl
 		if (table!=null) {
 			throw new IllegalStateException("A table is open.");
 		}
-		Evaluate e = new Evaluate(exp, t);
+		Evaluate e = new Evaluate(exp, t, fc.getConfiguration().isMarkingCapitalLetters());
 		getCurrentBlock().addSegment(e);
 	}
 	

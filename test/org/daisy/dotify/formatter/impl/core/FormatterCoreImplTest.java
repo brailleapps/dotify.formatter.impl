@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.daisy.dotify.api.formatter.BlockProperties;
+import org.daisy.dotify.api.formatter.FormatterConfiguration;
 import org.daisy.dotify.formatter.impl.common.FormatterCoreContext;
 import org.daisy.dotify.formatter.impl.row.BlockMargin;
 import org.daisy.dotify.formatter.impl.row.Margin;
@@ -21,6 +22,9 @@ public class FormatterCoreImplTest {
 	public FormatterCoreImplTest() {
 		context = Mockito.mock(FormatterCoreContext.class);
 		Mockito.when(context.getSpaceCharacter()).thenReturn(' ');
+		FormatterConfiguration conf = Mockito.mock(FormatterConfiguration.class);
+		Mockito.when(conf.isMarkingCapitalLetters()).thenReturn(true);
+		Mockito.when(context.getConfiguration()).thenReturn(conf);
 	}
 
 	@Test

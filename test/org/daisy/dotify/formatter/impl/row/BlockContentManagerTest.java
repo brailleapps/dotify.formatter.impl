@@ -34,7 +34,7 @@ public class BlockContentManagerTest {
 		FormatterContext c = new FormatterContext(BrailleTranslatorFactoryMaker.newInstance(), TextBorderFactoryMaker.newInstance(), MarkerProcessorFactoryMaker.newInstance(), FormatterConfiguration.with("sv-SE", TranslatorType.UNCONTRACTED.toString()).build());
 		Stack<Segment> segments = new Stack<>();
 		for (int i=0; i<6; i++) {
-			segments.push(new TextSegment("... ", new TextProperties.Builder("sv-SE").build()));
+			segments.push(new TextSegment("... ", new TextProperties.Builder("sv-SE").build(), true));
 		}
 		RowDataProperties rdp = new RowDataProperties.Builder().firstLineIndent(1).textIndent(3).build();
 		CrossReferenceHandler refs = mock(CrossReferenceHandler.class);
@@ -56,7 +56,7 @@ public class BlockContentManagerTest {
 		segments.push(new LeaderSegment(
 				new Leader.Builder().align(org.daisy.dotify.api.formatter.Leader.Alignment.RIGHT).pattern(" ").position(new Position(1.0, true)).build())
 		);
-		segments.push(new TextSegment("...", new TextProperties.Builder("sv-SE").build()));
+		segments.push(new TextSegment("...", new TextProperties.Builder("sv-SE").build(), true));
 
 		RowDataProperties rdp = new RowDataProperties.Builder().firstLineIndent(1).textIndent(3).build();
 		CrossReferenceHandler refs = mock(CrossReferenceHandler.class);
@@ -73,11 +73,11 @@ public class BlockContentManagerTest {
 		//setup
 		FormatterContext c = new FormatterContext(BrailleTranslatorFactoryMaker.newInstance(), TextBorderFactoryMaker.newInstance(), MarkerProcessorFactoryMaker.newInstance(), FormatterConfiguration.with("sv-SE", TranslatorType.UNCONTRACTED.toString()).build());
 		Stack<Segment> segments = new Stack<>();
-		segments.push(new TextSegment("... ... ...", new TextProperties.Builder("sv-SE").build()));
+		segments.push(new TextSegment("... ... ...", new TextProperties.Builder("sv-SE").build(), true));
 		segments.push(new NewLineSegment());
-		segments.push(new TextSegment("...", new TextProperties.Builder("sv-SE").build()));
+		segments.push(new TextSegment("...", new TextProperties.Builder("sv-SE").build(), true));
 		segments.push(new NewLineSegment());
-		segments.push(new TextSegment("...", new TextProperties.Builder("sv-SE").build()));
+		segments.push(new TextSegment("...", new TextProperties.Builder("sv-SE").build(), true));
 
 		RowDataProperties rdp = new RowDataProperties.Builder().firstLineIndent(1).textIndent(3).build();
 		CrossReferenceHandler refs = mock(CrossReferenceHandler.class);

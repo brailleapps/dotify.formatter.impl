@@ -20,4 +20,9 @@ public interface Segment extends ResolvableText {
 		return false;
 	}
 
+	@Override
+	public default boolean shouldMarkCapitalLetters() {
+		return true;
+	}
+
 }

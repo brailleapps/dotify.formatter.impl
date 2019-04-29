@@ -8,11 +8,13 @@ import org.daisy.dotify.api.translator.BrailleTranslatorResult;
 public class TextSegment implements Segment {
 	private final String chars;
 	private final TextProperties tp;
+	private final boolean markCapitalLetters;
 	private BrailleTranslatorResult cache;
 
-	public TextSegment(String chars, TextProperties tp) {
+	public TextSegment(String chars, TextProperties tp, boolean markCapitalLetters) {
 		this.chars = chars;
 		this.tp = tp;
+		this.markCapitalLetters = markCapitalLetters;
 	}
 	
 	public boolean canMakeResult() {
@@ -101,6 +103,11 @@ public class TextSegment implements Segment {
 	@Override
 	public boolean shouldHyphenate() {
 		return tp.isHyphenating();
+	}
+
+	@Override
+	public boolean shouldMarkCapitalLetters() {
+		return markCapitalLetters;
 	}
 
 }

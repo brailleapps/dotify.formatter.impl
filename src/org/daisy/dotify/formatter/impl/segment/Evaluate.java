@@ -16,6 +16,7 @@ import org.daisy.dotify.api.formatter.TextProperties;
 public class Evaluate implements Segment {
 	private final DynamicContent expression;
 	private final TextProperties props;
+	private final boolean markCapitalLetters;
 	private Supplier<String> v = ()->"";
 	private String resolved;
 	
@@ -23,13 +24,14 @@ public class Evaluate implements Segment {
 	 * @param expression the expression
 	 * @param props the text properties
 	 */
-	public Evaluate(DynamicContent expression, TextProperties props) {
-		this(expression, props, null);
+	public Evaluate(DynamicContent expression, TextProperties props, boolean markCapitalLetters) {
+		this(expression, props, markCapitalLetters, null);
 	}
 
-	public Evaluate(DynamicContent expression, TextProperties props, MarkerValue marker) {
+	public Evaluate(DynamicContent expression, TextProperties props, boolean markCapitalLetters, MarkerValue marker) {
 		this.expression = expression;
 		this.props = props;
+		this.markCapitalLetters = markCapitalLetters;
 	}
 	
 	public DynamicContent getExpression() {
@@ -113,6 +115,11 @@ public class Evaluate implements Segment {
 	@Override
 	public boolean shouldHyphenate() {
 		return props.isHyphenating();
+	}
+
+	@Override
+	public boolean shouldMarkCapitalLetters() {
+		return markCapitalLetters;
 	}
 
 }

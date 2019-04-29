@@ -13,16 +13,18 @@ import org.daisy.dotify.api.formatter.NumeralStyle;
 public class PageNumberReference implements Segment {
 	private final String refid;
 	private final NumeralStyle style;
+	private final boolean markCapitalLetters;
 	private Supplier<String> v=()->"";
 	private String resolved;
 	
-	public PageNumberReference(String refid, NumeralStyle style) {
-		this(refid, style, null);
+	public PageNumberReference(String refid, NumeralStyle style, boolean markCapitalLetters) {
+		this(refid, style, null, markCapitalLetters);
 	}
 	
-	public PageNumberReference(String refid, NumeralStyle style, MarkerValue marker) {
+	public PageNumberReference(String refid, NumeralStyle style, MarkerValue marker, boolean markCapitalLetters) {
 		this.refid = refid;
 		this.style = style;
+		this.markCapitalLetters = markCapitalLetters;
 	}
 	
 	/**
@@ -104,6 +106,11 @@ public class PageNumberReference implements Segment {
 	@Override
 	public boolean isStatic() {
 		return false;
+	}
+
+	@Override
+	public boolean shouldMarkCapitalLetters() {
+		return markCapitalLetters;
 	}
 
 

@@ -12,7 +12,9 @@ class OrphanWidowControl {
 	/**
 	 * Creates a new instance
 	 * @param orphans the minimum number of paragraph-opening lines that may appear by themselves at the bottom of a page.
+	 *	If the paragraph is split across two pages, then at least this number of lines must be present at the bottom of the first page.
 	 * @param widows the minimum number of paragraph-ending lines that may fall at the beginning of the following page.
+	 *	If the paragraph is split across two pages, then at least this number of lines must be at the top of the second page. 
 	 * @param size the number of lines in the paragraph
 	 */
 	OrphanWidowControl(int orphans, int widows, int size) {

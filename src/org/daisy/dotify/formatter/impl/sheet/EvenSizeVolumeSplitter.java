@@ -26,6 +26,14 @@ import java.util.logging.Logger;
  * org.daisy.dotify.formatter.impl.VolumeProvider}.</p>
  */
 class EvenSizeVolumeSplitter implements VolumeSplitter {
+    /*
+    Q: Is this the only class that implements VolumeSplitter?
+    A (Bert): yes
+    Q: Suppose I just want to fill the first volume, split it at a good place, go to the next volume, etc,
+        and I don't care about the size of the last volume.
+        Would this be a much easier approach?
+    A (Bert): It would simplify things a bit, but not that much I think.
+    */
 	private static final Logger logger = Logger.getLogger(EvenSizeVolumeSplitter.class.getCanonicalName());
 	private EvenSizeVolumeSplitterCalculator sdc;
 	private final SplitterLimit splitterMax;
@@ -37,6 +45,9 @@ class EvenSizeVolumeSplitter implements VolumeSplitter {
 	 * This map keeps track of which split suggestions resulted in a successful split. We
 	 * make use of this information in order to not get into an endless loop while looking
 	 * for the optimal number of volumes.
+	 * (Paul) This is the only place where information from all previous iterations is used.
+	 *	At other places, e.g. the LookupHandlers, only information from the previous iteration is used,
+	 *	for comparison purposes (setting of the dirty flag).
 	 */
 	private Map<EvenSizeVolumeSplitterCalculator,Boolean> previouslyTried = new HashMap<>();
 	
@@ -64,6 +75,11 @@ class EvenSizeVolumeSplitter implements VolumeSplitter {
 				EvenSizeVolumeSplitterCalculator esc = new EvenSizeVolumeSplitterCalculator(sheets, splitterMax, volumeOffset);
 				
 				// Try increasing the volume count
+				/*
+				Q: Why would you ever want to do this?
+				A: The right question is: "why _wouldn't_ you want to do this? It is possible that this solution
+					hasn't been tried before, and we might have added too many volumes in the previous iteration.
+				*/
 				if (remainingSheets >= sheets) {
 					throw new IllegalStateException();
 				}

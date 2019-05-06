@@ -10,6 +10,21 @@ public final class BlockAddress {
 		this.blockNumber = blockNumber;
 	}
 	
+	// The synchronisation can be made private, which gives a much better performance.
+	// Try to prevent jumping out of a synchronized block (in this case with a return statement)
+	// Suggestion:
+	/*
+	private final static Object NEXT_GROUP_NUMBER_SYNCHRONIZER = new Object();
+	
+	public static synchronized long getNextGroupNumber() {
+		long ngs;
+		synchronized (NEXT_GROUP_NUMBER_SYNCHRONIZER) {
+			nextGroupNumber++;
+			ngs = nextGroupNumber;
+		}
+		return ngs;
+	}
+	*/
 	public static synchronized long getNextGroupNumber() {
 		nextGroupNumber++;
 		return nextGroupNumber;

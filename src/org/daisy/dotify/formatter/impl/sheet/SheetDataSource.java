@@ -190,6 +190,10 @@ public class SheetDataSource implements SplitPointDataSource<Sheet, SheetDataSou
 	/**
 	 * Ensures that there are at least index elements in the buffer.
 	 * When index is -1 this method always returns false.
+	 * There are three of such ensureBuffer methods:
+	 * - this one, for sheets
+	 * - in RowGroupDataSource, for row groups
+	 * - in BlockContentManager, for rows
 	 * @param index the index (or -1 to get all remaining elements)
 	 * @return returns true if the index element was available, false otherwise
 	 */

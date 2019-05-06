@@ -104,7 +104,16 @@ public class VolumeProvider {
 	}
 		
 	/**
-	 * Resets the volume provider to its initial state (with some information preserved). 
+	 * Resets the volume provider to its initial state (with some information preserved).
+	 * 
+	 * Q: In the prepare() there is already a mapping from sheets to volumes (EvenSizeVolumeSplitterCalculator.makeVolumeForSheetMap)
+	 * So the prepare() determines the number of sheets for each volume. Is that correct?
+	 * A (Bert): Only the first time if I'm not mistaken (when `init` is false). For the following iterations this happens in done().
+	 *
+	 * Q: Which information is preserved, and which not?
+	 * Q: Why is method prepareToPaginateWithVolumeGroups called twice at start?
+	 * A: To initialize the volCount and groups variables
+	 * 
 	 * @throws RestartPaginationException if pagination should be restarted
 	 */
 	void prepare() {
@@ -162,6 +171,9 @@ public class VolumeProvider {
 	
 	/**
 	 * Gets the contents of the next volume
+	 * Also extends the anchordata
+	 * Q: With what is the anchordata extended?
+	 * 
 	 * @param overhead the number of sheets in this volume that's not part of the main body of text
 	 * @param ad the anchor data
 	 * @return returns the contents of the next volume
@@ -240,6 +252,7 @@ public class VolumeProvider {
 		return sb;
 	}
 	
+	// the AnchorData is updated implicitly
 	private SectionBuilder updateVolumeContents(int volumeNumber, ArrayList<AnchorData> ad, boolean pre) {
 		DefaultContext c = new DefaultContext.Builder(crh)
 						.currentVolume(volumeNumber)
@@ -344,6 +357,11 @@ public class VolumeProvider {
 		if (groups.hasNext() && logger.isLoggable(Level.FINE)) {
 			logger.fine("There is more content (sheets: " + groups.countRemainingSheets() + ", pages: " + groups.countRemainingPages() + ")");
 		}
+		/*
+		Q: The updateAll() generates a new mapping of sheets to volumes in EvenSizeVolumeSplitterCalculator.makeVolumeForSheetMap().
+			Why would you create such a new mapping _after_ the volume division?
+		A (Bert): It's for the next iteration of course.
+		*/
 		// this changes the value of groups.getVolumeCount() to the newly computed
 		// required number of volume based on groups.countTotalSheets()
 		groups.updateAll();

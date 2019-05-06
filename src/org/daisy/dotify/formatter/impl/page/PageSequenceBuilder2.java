@@ -496,7 +496,7 @@ public class PageSequenceBuilder2 {
 				// we are also finished (the while loop will end).
 				if (!data.isEmpty()) {
 					return current;
-				} else if (current!=null && dataGroupsIndex<dataGroups.size()) {
+				} else if (current!=null && dataGroupsIndex<dataGroups.size()) { // here current can't be null
 					BreakBefore nextStart = dataGroups.get(dataGroupsIndex).getBreakBefore();
 					if (nextStart!=BreakBefore.AUTO) {
 						if (nextStart == BreakBefore.SHEET && master.duplex() && pageCount%2==1) {

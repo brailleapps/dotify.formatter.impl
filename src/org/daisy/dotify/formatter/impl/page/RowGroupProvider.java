@@ -82,6 +82,11 @@ class RowGroupProvider {
 
 	public boolean hasNext() {
 		// these conditions must match the ones in next()
+		/*
+		phases < 3 are pre-processing steps
+		phase 3 is the step that actually processes the rowgroup
+		phases > 3 are post-processing steps
+		*/
 		return 
 			phase < 1 && bcm.hasCollapsiblePreContentRows()
 			||
@@ -161,6 +166,7 @@ class RowGroupProvider {
 			}
 		}
 		if (phase==3) {
+			// process this rowgroup
 			Optional<RowImpl> rt;
 			if ((rt=bcm.getNext(lineProps)).isPresent()) {
 				RowImpl r = rt.get();

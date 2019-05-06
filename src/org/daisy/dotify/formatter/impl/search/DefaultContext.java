@@ -2,6 +2,10 @@ package org.daisy.dotify.formatter.impl.search;
 
 import org.daisy.dotify.api.formatter.Context;
 
+/**
+ * Immutable context
+ * metaVolume, metaPage: taken from the OBFL variables "started-volume-number" and "started-page-number"
+ */
 public class DefaultContext implements Context {
 
 	private final Integer currentVolume, currentPage, metaVolume, metaPage;

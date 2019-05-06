@@ -149,7 +149,11 @@ class PaginatorTools {
 	}
 
 	/**
-	 * @param units
+	 * @param units the units to distribute
+	 * @param width the total width of the returned strings
+	 * @param padding characters to add between strings, if the space is bigger 
+	 * 	than the string the padding will be repeated, otherwise the padding will be truncated.
+	 * @param mode the distribution mode
 	 * @return a list of size 2*N-1, where N is the size of <code>units</code>. Element i of
 	 *         <code>unit</code> corresponds with element 2*i in the returned list. Elements i*2+1 for
 	 *         i=(0..N-1) is padding between units. The sum of the lengths of all strings equals

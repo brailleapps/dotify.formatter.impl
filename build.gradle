@@ -57,6 +57,7 @@ javadoc {
 		links("https://brailleapps.github.io/dotify.api/$versions.dotifyApi/javadoc/")
 		links("https://brailleapps.github.io/dotify.common/$versions.dotifyCommon/javadoc/")
 		links("https://www.ologolo.org/streamline-api/$versions.streamlineApi/javadoc/")
+		options.memberLevel = 'PACKAGE'
 	}
 }
 

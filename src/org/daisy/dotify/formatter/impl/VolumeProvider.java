@@ -105,7 +105,7 @@ public class VolumeProvider {
 		
 	/**
 	 * Resets the volume provider to its initial state (with some information preserved). 
-	 * @throws RestartPaginationException
+	 * @throws RestartPaginationException if pagination should be restarted
 	 */
 	void prepare() {
 		if (!init) {

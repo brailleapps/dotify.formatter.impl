@@ -111,6 +111,7 @@ class RowGroup implements SplitPointUnit {
 		/**
 		 * Sets the last in a block indicator.
 		 * @param value the value
+		 * @return this builder
 		 */
 		Builder lastRowGroupInBlock(boolean value) {
 			this.lastInBlock = value;

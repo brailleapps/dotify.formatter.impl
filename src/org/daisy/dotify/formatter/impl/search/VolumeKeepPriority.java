@@ -89,6 +89,8 @@ public final class VolumeKeepPriority {
 	 * <p>Compares the specified values.</p>
 	 * <p>Note that, because a higher priority is represented by a lower value,
 	 * this function may appear to be incorrect in some contexts.</p>
+	 * <p>An absent priority is "higher" than the lowest priority ({@code 9}) is "higher" than the
+	 * highest priority ({@code 1}).</p>
 	 * @param p1 the first value
 	 * @param p2 the second value
 	 * @return the value {@code 0} if the priority of {@code p1} is

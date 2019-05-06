@@ -47,6 +47,10 @@ import org.daisy.dotify.formatter.impl.segment.NewLineSegment;
 import org.daisy.dotify.formatter.impl.segment.PageNumberReference;
 import org.daisy.dotify.formatter.impl.segment.TextSegment;
 
+/**
+ * <p>Implementation of {@link FormatterCore}. Can contain for example a parsed OBFL
+ * <code>sequence</code>.</p>
+ */
 public class FormatterCoreImpl extends Stack<Block> implements FormatterCore, BlockGroup {
 	/**
 	 * 

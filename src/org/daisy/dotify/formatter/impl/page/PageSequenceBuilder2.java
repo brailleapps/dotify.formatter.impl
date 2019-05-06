@@ -38,6 +38,38 @@ import org.daisy.dotify.formatter.impl.search.SequenceId;
 import org.daisy.dotify.formatter.impl.search.TransitionProperties;
 import org.daisy.dotify.formatter.impl.search.VolumeKeepPriority;
 
+/**
+ * <p>Given a {@link BlockSequence}, produces {@link org.daisy.dotify.formatter.impl.common.Page}
+ * objects one by one. The pages are obtained through a {@link #nextPage(int, boolean, Optional,
+ * boolean, boolean) "iterator" interface}.</p>
+ *
+ * <ul>
+ *   <li>Performs page breaking.</li>
+ *   <li>Constructs any "page-area" areas and fills it with collection items that are referenced from anchors on this page.</li>
+ *   <li>Adds any header and footer lines. (This is done in {@link PageImpl}.)</li>
+ *   <li>Adds "<code>margin-region</code>" columns. (This is done in {@link PageImpl}.)</li>
+ *   <li>Adds any "<code>volume-transition</code>" content (<code>sequence-interrupted</code>,
+ *       <code>sequence-resumed</code>, <code>any-interrupted</code> and/or <code>any-resumed</code>).
+ *       <br>
+ *       Note that <code>block-interrupted</code> and <code>block-resumed</code> are currently not implemented.
+ *   </li>
+ * </ul>
+ *
+ * <p>The input is a sequence of blocks, which are first converted to a sequence of {@link
+ * RowGroupSequence}. If a sequence has multiple possible scenarios the best one is selected. Every
+ * <code>RowGroupSequence</code> either starts on a new sheet, a new page, or on a specific position
+ * on the page. A <code>RowGroupSequence</code> that does not fit on the page is broken, using
+ * {@link SplitPointHandler}. The cost function takes into account the gap at the bottom of the
+ * page, whether the {@link RowGroup#isBreakable() isBreakable} and {@link
+ * RowGroup#getAvoidVolumeBreakAfterPriority()} constraints of the last <code>RowGroup</code> are
+ * violated, and whether we're breaking inside a block that can not flow around header/footer fields
+ * while the header/footer does allow it.
+ *
+ * <p>The computed {@link VolumeKeepPriority} of page is the maximum value (lowest priority) of all
+ * {@link RowGroup}s on that page. Discarded {@link RowGroup}s (i.e. collapsed margins) are also
+ * taken into account.</p>
+ */
+
 public class PageSequenceBuilder2 {
 	private final FormatterContext context;
 	private final PageAreaContent staticAreaContent;
@@ -60,14 +92,40 @@ public class PageSequenceBuilder2 {
 	private int dataGroupsIndex;
 	private boolean nextEmpty = false;
 
+	// BlockLineLocation of the last line of the previous page (produced by this PageSequenceBuilder2 or the previous one)
 	private BlockLineLocation cbl;
+	// BlockLineLocation of the last line of the page before the previous page, or null if no page has been produced yet
 	private BlockLineLocation pcbl;
 
 	//From view, temporary
 	private final int fromIndex;
 	private int toIndex;
 
-	public PageSequenceBuilder2(int fromIndex, LayoutMaster master, int pageOffset, BlockSequence seq, FormatterContext context, DefaultContext rcontext, SequenceId seqId, BlockLineLocation blc) {
+	/**
+	 * @param fromIndex "Index" of the first page of this <code>PageSequenceBuilder</code>. The
+	 *     exact value does not matter for <code>PageSequenceBuilder2</code> itself, but {@link
+	 *     org.daisy.dotify.formatter.impl.sheet.SheetDataSource} requires that the values returned
+	 *     by {@link #getGlobalStartIndex()} and {@link #getToIndex()} match the provided value. The
+	 *     value passed by {@link org.daisy.dotify.formatter.impl.sheet.SheetDataSource} is the
+	 *     number of pages that either the whole body, or the pre- or post-content of the current
+	 *     volume, already contains.
+	 * @param master the layout master
+	 * @param pageOffset see the <code>pageNumberOffset</code> parameter in {@link #nextPage(int,
+	 *     boolean, Optional, boolean, boolean) nextPage}.
+	 * @param seq the input block sequence
+	 * @param context ?
+	 * @param rcontext ?
+	 * @param seqId identifier/position of the block sequence
+	 * @param blc The {@link BlockLineLocation} of the last line of the previous PageSequenceBuilder2.
+	 */
+	public PageSequenceBuilder2(int fromIndex,
+	                            LayoutMaster master,
+	                            int pageOffset,
+	                            BlockSequence seq,
+	                            FormatterContext context,
+	                            DefaultContext rcontext,
+	                            SequenceId seqId,
+	                            BlockLineLocation blc) {
 		this.fromIndex = fromIndex;
 		this.toIndex = fromIndex;
 		this.master = master;
@@ -167,7 +225,29 @@ public class PageSequenceBuilder2 {
 		return dataGroupsIndex<dataGroups.size() || (data!=null && !data.isEmpty());
 	}
 	
-	public PageImpl nextPage(int pageNumberOffset, boolean hyphenateLastLine, Optional<TransitionContent> transitionContent, boolean wasSplitInSequence, boolean isFirst) throws PaginatorException, RestartPaginationException // pagination must be restarted in PageStructBuilder.paginateInner
+	/**
+	 * @param pageNumberOffset Page number corresponding to the first page of this
+	 *     <code>PageSequenceBuilder2</code> minus 1, if the page numbering would be continuous
+	 *     between the first and the current page. This does not necessarily match the actual page
+	 *     number of the produced page, because for instance when a volume break happens inside a
+	 *     sequence, there can be a jump in the page numbering.
+	 * @param hyphenateLastLine Whether to allow the last line on the page to end on a hyphenation
+	 *     point (may be the case on the last page of the volume).
+	 * @param transitionContent Content to be inserted at the top (any-resumed and/or
+	 *        sequence-resumed) or at the bottom of the page (any-interrupted and/or
+	 *        sequence-interrupted). any-resumed is only enabled if <code>isFirst</code> is not
+	 *        <code>true</code>, sequence-resumed is only enabled if <code>wasSplitInSequence</code>
+	 *        is <code>true</code>, sequence-interrupted is only enabled if the page is broken
+	 *        within the sequence.
+	 * @param wasSplitInSequence see above
+	 * @param isFirst see above
+	 * @return the next page
+	 */
+	public PageImpl nextPage(int pageNumberOffset,
+	                         boolean hyphenateLastLine,
+	                         Optional<TransitionContent> transitionContent,
+	                         boolean wasSplitInSequence,
+	                         boolean isFirst) throws PaginatorException, RestartPaginationException // pagination must be restarted in PageStructBuilder.paginateInner
 	{
 		PageImpl ret = nextPageInner(pageNumberOffset, hyphenateLastLine, transitionContent, wasSplitInSequence, isFirst);
 		blockContext.getRefs().keepPageDetails(ret.getDetails());
@@ -188,6 +268,10 @@ public class PageSequenceBuilder2 {
 	{
 		PageImpl current = newPage(pageNumberOffset);
 		if (pcbl!=null) {
+			// Store a mapping from the BlockLineLocation of the last line of the page before the
+			// previous page to the BlockLineLocation of the last line of the previous page. This
+			// info is used (in the next iteration) in SheetDataSource to obtain info about the
+			// verso page of a sheet when we are on a recto page of that sheet.
 			blockContext.getRefs().setNextPageDetailsInSequence(pcbl, current.getDetails());
 		}
 		if (nextEmpty) {
@@ -196,16 +280,19 @@ public class PageSequenceBuilder2 {
 		}
 		// The purpose of this is to prevent supplements from combining with header/footer
 		cd.setExtraOverhead(current.getPageTemplate().validateAndAnalyzeHeader() + current.getPageTemplate().validateAndAnalyzeFooter());
+		// while there are more rows in the current block, or there are more blocks...
 		while (dataGroupsIndex<dataGroups.size() || (data!=null && !data.isEmpty())) {
 			if ((data==null || data.isEmpty()) && dataGroupsIndex<dataGroups.size()) {
-				//pick up next group
+				// pick up next block (as RowGroupSequence)
 				RowGroupSequence rgs = dataGroups.get(dataGroupsIndex);
 				//TODO: This assumes that all page templates have margin regions that are of the same width
 				BlockContext bc = BlockContext.from(blockContext)
 						.flowWidth(master.getFlowWidth() - master.getTemplate(current.getPageNumber()).getTotalMarginRegionWidth())
 						.build();
+				// convert to RowGroupDataSource
 				data = new RowGroupDataSource(master, bc, rgs.getBlocks(), rgs.getBreakBefore(), rgs.getVerticalSpacing(), cd);
 				dataGroupsIndex++;
+				// perform vertical positioning by inserting empty rows
 				if (((RowGroupDataSource)data).getVerticalSpacing()!=null) {
 					VerticalSpacing vSpacing = ((RowGroupDataSource)data).getVerticalSpacing();
 					float size = 0;
@@ -225,6 +312,9 @@ public class PageSequenceBuilder2 {
 					.flowWidth(master.getFlowWidth() - master.getTemplate(current.getPageNumber()).getTotalMarginRegionWidth())
 					.build();
 			data.setContext(bc);
+			// This function returns the space that header or footer fields take up in a row at a
+			// certain position on the page. RowGroupDataSource needs this information in order to
+			// know where to break the line.
 			Function<Integer, Integer> reservedWidths = x->{
 				return master.getFlowWidth()-fieldResolver.getWidth(current.getPageNumber(), x);
 			}; 
@@ -242,9 +332,13 @@ public class PageSequenceBuilder2 {
 				data = sl.getTail();
 				// And on copy...
 				copy = SplitPointHandler.skipLeading(copy, index).getTail();
+				// Content of sequence-interrupted or sequence-resumed (which of the two depends on
+				// whether we are at the beginning or the end of the volume)
 				List<RowGroup> seqTransitionText = transitionContent.isPresent()
 						?new RowGroupDataSource(master, bc, transitionContent.get().getInSequence(), BreakBefore.AUTO, null, cd).getRemaining()
 						:Collections.emptyList();
+				// Content of any-interrupted or any-resumed (which of the two depends on whether we
+				// are at the beginning or the end of the volume)
 				List<RowGroup> anyTransitionText; {
 					if (transitionContent.isPresent()
 					    && !(transitionContent.get().getType() == TransitionContent.Type.RESUME && isFirst)) {
@@ -255,6 +349,7 @@ public class PageSequenceBuilder2 {
 					}
 				}
 				float anyHeight = height(anyTransitionText, true);
+				// First find the optimal break point
 				SplitPointSpecification spec;
 				boolean addTransition = true;
 				if (transitionContent.isPresent() && transitionContent.get().getType()==Type.INTERRUPT) {
@@ -280,11 +375,12 @@ public class PageSequenceBuilder2 {
 									:21 // because 11 + 9 = 20
 								)*limit-in;
 					};
-					// Finding from the full height
+					// Find break point with full height available, i.e. without sequence-interrupted subtracted
 					spec = sph.find(current.getFlowHeight() - anyHeight, copy, cost, force?StandardSplitOption.ALLOW_FORCE:null);
 					SplitPoint<RowGroup, RowGroupDataSource> x = sph.split(spec, copy);
-					// If the tail is empty, there's no need for a transition
-					// If there isn't a transition between blocks available, don't insert the text
+					// If the tail is empty, there's no need for a transition.
+					// If there isn't a boundary between blocks available to break at, don't insert the text.
+					// There must be enough space available after this position for sequence-interrupted.
 					blockBoundary = Optional.of(hasBlockInScope(x.getHead(), flowHeight));
 					if (!x.getTail().isEmpty() && blockBoundary.get()) {
 						// Find the best break point with the new limit
@@ -294,6 +390,12 @@ public class PageSequenceBuilder2 {
 					}
 				} else {
 					SplitPointCost<RowGroup> cost = (SplitPointDataSource<RowGroup, ?> units, int in, int limit)->{
+							// variableWidthCost > 0 means that there is space on the row taken up
+							// by header or footer fields and the RowGroup can not be fit into the
+							// available space (does not support variable width).
+							// We know that if this is the case the row is blank (RowGroupProvider
+							// inserts them) so it is fine to break here, but we give it a big
+							// penalty so that it might become preferable to break before the block.
 							double variableWidthCost = (reservedWidths.apply(in)>0 && !units.get(in).isMergeable())?10:0;
 							return (
 										(units.get(in).isBreakable()?1:2) + variableWidthCost
@@ -307,6 +409,7 @@ public class PageSequenceBuilder2 {
 					float flowHeight = current.getFlowHeight() - anyHeight - seqHeight;
 					spec = sph.find(flowHeight, copy, cost, force?StandardSplitOption.ALLOW_FORCE:null);
 				}
+				// The optimal break point is found. Now we do the actual split.
 				// Now apply the information to the live data
 				data.setAllowHyphenateLastLine(hyphenateLastLine);
 				SplitPoint<RowGroup, RowGroupDataSource> res = sph.split(spec, data);
@@ -318,12 +421,15 @@ public class PageSequenceBuilder2 {
 						throw new RuntimeException("A layout unit was too big for the page.");
 					}
 				}
+				// The supplements are added to the page area
 				for (RowGroup rg : res.getSupplements()) {
 					current.addToPageArea(rg.getRows());
 				}
 				force = res.getHead().size()==0;
 				data = res.getTail();
 				List<RowGroup> head;
+				// If there is a sequence-interrupted or sequence-resumed, it is added to the end of
+				// current page or the beginning of the next respectively.
 				if (addTransition && transitionContent.isPresent()) {
 					if (transitionContent.get().getType()==TransitionContent.Type.INTERRUPT) {
 						head = new ArrayList<>(res.getHead());
@@ -337,6 +443,7 @@ public class PageSequenceBuilder2 {
 				} else {
 					head = res.getHead();
 				}
+				// The same for any-interrupted and any-resumed.
 				//TODO: combine this if statement with the one above
 				if (!anyTransitionText.isEmpty()) {
 					switch (transitionContent.get().getType()) {
@@ -357,19 +464,35 @@ public class PageSequenceBuilder2 {
 					pcbl = cbl;
 					cbl = gr.getLineProperties().getBlockLineLocation();
 				}
+				// Add the body rows to the page.
 				addRows(head, current);
+				// The VolumeKeepPriority of the page is the maximum value (lowest priority) of all
+				// RowGroups. Discarded RowGroups (i.e. collapsed margins) are also taken into
+				// account.
 				current.setAvoidVolumeBreakAfter(getVolumeKeepPriority(res.getDiscarded(), getVolumeKeepPriority(res.getHead(), VolumeKeepPriority.empty())));
+				// Store info about this volume transition for use in the next iteration (used in SheetDataSource).
+				// No need to do this unless there is an active transition builder.
 				if (context.getTransitionBuilder().getProperties().getApplicationRange()!=ApplicationRange.NONE) {
-					// no need to do this, unless there is an active transition builder
+					// Determine whether there is a block boundary on the page, with enough space
+					// available after this point for sequence-interrupted and any-interrupted.
 					boolean hasBlockBoundary = blockBoundary.isPresent()?blockBoundary.get():res.getHead().stream().filter(r->r.isLastRowGroupInBlock()).findFirst().isPresent();
 					bc.getRefs().keepTransitionProperties(current.getDetails().getPageLocation(), new TransitionProperties(current.getAvoidVolumeBreakAfter(), hasBlockBoundary));
 				}
+				// Discard collapsed margins, but retain their properties (identifiers, markers,
+				// keep-with-next-sheets, keep-with-previous-sheets).
 				for (RowGroup rg : res.getDiscarded()) {
 					addProperties(current, rg);
 				}
+				// If the space needed for the footnotes exceeds max-height, we need to use the
+				// fallback. This will result in a RestartPaginationException, i.e. the pagination
+				// should be restarted from the beginning (start of current iteration).
 				if (hasPageAreaCollection() && current.pageAreaSpaceNeeded() > master.getPageArea().getMaxHeight()) {
 					reassignCollection();
 				}
+				// We are finished with the page if either the block was split (tail not empty), or
+				// if the next block has break-before="page" or break-before="sheet". In case of
+				// break-before="sheet" we insert an empty page if needed. If there is no next block
+				// we are also finished (the while loop will end).
 				if (!data.isEmpty()) {
 					return current;
 				} else if (current!=null && dataGroupsIndex<dataGroups.size()) {
@@ -453,8 +576,9 @@ public class PageSequenceBuilder2 {
 			if (context.getTransitionBuilder().getProperties().getApplicationRange()==ApplicationRange.NONE) {
 				return list.get(list.size()-1).getAvoidVolumeBreakAfterPriority();
 			} else {
-				// we want the highest value (lowest priority) to maximize the chance that this page is used
-				// when finding the break point
+				// We want the highest value (lowest priority) to maximize the chance that this page
+				// is used when finding the break point. An absent priority is "higher" than the
+				// lowest priority (9) is "higher" than the highest priority (1).
 				return list.stream().map(v->v.getAvoidVolumeBreakAfterPriority())
 						.max(VolumeKeepPriority::compare)
 						.orElse(VolumeKeepPriority.empty());
@@ -580,6 +704,16 @@ public class PageSequenceBuilder2 {
 		return getSizeLast(fromIndex);
 	}
 	
+	/**
+	 * Returns the number of supplied pages since <code>fromIndex</code> ({@link #getToIndex()} -
+	 * <code>fromIndex</code>), rounded to an even number if duplex, i.e. in the case of duplex it
+	 * represents twice the number of sheets needed to contain the supplied pages since
+	 * <code>fromIndex</code> (assuming that the first page after <code>fromIndex</code> starts on
+	 * the front side of the first sheet).
+	 *
+	 * @param fromIndex a page index
+	 * @return a number of pages
+	 */
 	public int getSizeLast(int fromIndex) {
 		int size = getToIndex()-fromIndex;
 		if (master.duplex() && (size % 2)==1) {
@@ -589,18 +723,32 @@ public class PageSequenceBuilder2 {
 		}
 	}
 	
+	/**
+	 * Returns the number of supplied pages.
+	 *
+	 * @return a number of pages
+	 */
 	public int size() {
 		return getToIndex()-fromIndex;
 	}
 
 	/**
-	 * Gets the index for the first item in this sequence, counting all preceding items in the document, zero-based. 
-	 * @return returns the first index
+	 * Returns the provided value of <code>pageOffset</code> in {@link #PageSequenceBuilder2(int,
+	 * LayoutMaster, int, BlockSequence, FormatterContext, DefaultContext, SequenceId,
+	 * BlockLineLocation)}.
+	 *
+	 * @return a page index
 	 */
 	public int getGlobalStartIndex() {
 		return fromIndex;
 	}
 
+	/**
+	 * Returns the index of the page that will be (or "would" be) supplied next, provided that
+	 * {@link #getGlobalStartIndex()} is the index of the first page minus 1.
+	 *
+	 * @return a page index
+	 */
 	public int getToIndex() {
 		return toIndex;
 	}

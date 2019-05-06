@@ -3,14 +3,39 @@ package org.daisy.dotify.formatter.impl.search;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
+/**
+ * <p>Provides a way to keep track of changes to key/value mappings.
+ * If the value of a key is changed, {@link #isDirty()} will return true.
+ * The value can be changed either via {@link #put(Object, Object)}
+ * or via {@link #commit()}.</p>
+ * 
+ * <p>Note that, if a key is requested that is not in the map, the value
+ * of this key is also considered to have changed. It is therefore
+ * important to make sure that requested information is added to 
+ * the map at some point.</p>
+ * 
+ * <p><strong>Note that this implementation is not synchronized.</strong>
+ * If multiple threads access a hash map concurrently, and at least one of
+ * the threads modifies the map structurally, it <i>must</i> be
+ * synchronized externally.</p>
+ * 
+ * @author Joel Håkansson
+ *
+ * @param <K> the type of keys maintained by this map
+ * @param <V> the type of mapped values
+ */
 class LookupHandler<K, V> {
 	private final Map<K, V> keyValueMap;
 	private final Map<K, V> uncommitted;
 	private final Set<K> requestedKeys;
 	private boolean dirty;
 	
+	/**
+	 * Creates a new empty lookup handler.
+	 */
 	LookupHandler() {
 		this.keyValueMap = new HashMap<>();
 		this.uncommitted = new HashMap<>();
@@ -18,10 +43,26 @@ class LookupHandler<K, V> {
 		this.dirty = false;
 	}
 
+	/**
+	 * Returns the value to which the specified key is mapped, or null if this map
+	 * contains no mapping for the key. 
+	 * 
+	 * @param key the key
+	 * @return the value to which the specified key is mapped, or null if this map
+	 * contains no mapping for the key. 
+	 */
 	V get(K key) {
 		return get(key, null);
 	}
 
+	/**
+	 * Returns the value to which the specified key is mapped, or the default value 
+	 * if this map contains no mapping for the key.
+	 * @param key the key
+	 * @param def the default value
+	 * @return the value to which the specified key is mapped, or the default value 
+	 * if this map contains no mapping for the key
+	 */
 	V get(K key, V def) {
 		requestedKeys.add(key);
 		V ret = keyValueMap.get(key);
@@ -35,7 +76,7 @@ class LookupHandler<K, V> {
 	}
 
 	/**
-	 * Keeps a value for later commit. Unlike put, multiple calls to keep for the same key will not 
+	 * Keeps a value for later commit. Unlike {@link #put(Object, Object)}, multiple calls to keep for the same key will not 
 	 * affect the status of the LookupHandler. Upon calling commit, the final value for each key are put
 	 * and, if changed, affects the status of the LookupHandler. Note that kept variables cannot 
 	 * be read unless committed.
@@ -44,6 +85,7 @@ class LookupHandler<K, V> {
 	 * @param value the value
 	 */
 	void keep(K key, V value) {
+		Objects.requireNonNull(value);
 		uncommitted.put(key, value);
 	}
 	
@@ -58,7 +100,17 @@ class LookupHandler<K, V> {
 		}
 	}
 	
+	/**
+	 * Associates the specified value with the specified key in this 
+	 * map. If the map previously contained a mapping for the key,
+	 * {@link #isDirty()} will return true after this call.
+	 * @param key the key
+	 * @param value the value
+	 * @throws IllegalStateException if {@link #keep(Object, Object)} has been used on 
+	 * the specified key, but not {@link #commit()}.
+	 */
 	void put(K key, V value) {
+		Objects.requireNonNull(value);
 		if (uncommitted.containsKey(key)) {
 			throw new IllegalStateException(key + " has uncommitted values. Commit before putting.");
 		}
@@ -68,6 +120,11 @@ class LookupHandler<K, V> {
 		}
 	}
 
+	/**
+	 * Returns true if the value for any requested key was not present,
+	 * or if the value for any requested key changed after it was last requested.
+	 * @return true if the value for any key has changed, false otherwise
+	 */
 	boolean isDirty() {
 		return dirty;
 	}

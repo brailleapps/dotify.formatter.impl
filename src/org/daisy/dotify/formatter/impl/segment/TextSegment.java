@@ -1,5 +1,6 @@
 package org.daisy.dotify.formatter.impl.segment;
 
+import java.util.Objects;
 import java.util.Optional;
 
 import org.daisy.dotify.api.formatter.TextProperties;
@@ -12,8 +13,8 @@ public class TextSegment implements Segment {
 	private BrailleTranslatorResult cache;
 
 	public TextSegment(String chars, TextProperties tp, boolean markCapitalLetters) {
-		this.chars = chars;
-		this.tp = tp;
+		this.chars = Objects.requireNonNull(chars);
+		this.tp = Objects.requireNonNull(tp);
 		this.markCapitalLetters = markCapitalLetters;
 	}
 	

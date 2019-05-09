@@ -283,7 +283,7 @@ class SegmentProcessor implements SegmentProcessing {
 				// and that segment is a text segment
 				&& segments.get(index).getSegmentType()==SegmentType.Text 
 				// and it has the same properties
-				&& ((TextSegment)segments.get(index)).getTextProperties()==ts.getTextProperties();
+				&& ((TextSegment)segments.get(index)).getTextProperties().equals(ts.getTextProperties());
 	}
 
 	boolean hasMoreData() {

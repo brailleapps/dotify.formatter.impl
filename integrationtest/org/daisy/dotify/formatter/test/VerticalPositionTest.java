@@ -1,9 +1,11 @@
 package org.daisy.dotify.formatter.test;
 
+import java.io.File;
 import java.io.IOException;
 
 import org.daisy.dotify.api.engine.LayoutEngineException;
 import org.daisy.dotify.api.writer.PagedMediaWriterConfigurationException;
+import org.junit.Ignore;
 import org.junit.Test;
 @SuppressWarnings("javadoc")
 public class VerticalPositionTest extends AbstractFormatterEngineTest {
@@ -21,6 +23,12 @@ public class VerticalPositionTest extends AbstractFormatterEngineTest {
 	@Test
 	public void testVerticalPositionBefore() throws LayoutEngineException, IOException, PagedMediaWriterConfigurationException {
 		testPEF("resource-files/vertical-position/vertical-position-before-input.obfl", "resource-files/vertical-position/vertical-position-before-expected.pef", false);
+	}
+
+	@Test
+	@Ignore
+	public void testVerticalPositionBefore_02() throws LayoutEngineException, IOException, PagedMediaWriterConfigurationException {
+		testPEF("resource-files/vertical-position/vertical-position-before2-input.obfl", "resource-files/vertical-position/vertical-position-before2-expected.pef", false);
 	}
 
 	@Test

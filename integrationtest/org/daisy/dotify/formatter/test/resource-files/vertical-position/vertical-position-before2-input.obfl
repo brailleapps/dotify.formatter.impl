@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<obfl xmlns="http://www.daisy.org/ns/2011/obfl" version="2011-1" xml:lang="en">
+	<layout-master name="body" page-width="10" page-height="12" duplex="false">
+		<default-template>
+			<header/>
+			<footer/>
+		</default-template>
+	</layout-master>
+	<sequence master="body">
+		<block>⠉⠉⠉⠉⠉</block>
+		<block vertical-align="before" vertical-position="8">
+			<block>⠿⠿⠿⠿⠿<br/>⠿⠿⠿⠿⠿<br/>⠿⠿⠿⠿⠿</block>
+		</block>
+	</sequence>
+	<sequence master="body">
+		<block>⠉⠉⠉⠉⠉</block>
+		<block vertical-align="before" vertical-position="8" margin-bottom="1">
+			<block>⠿⠿⠿⠿⠿<br/>⠿⠿⠿⠿⠿<br/>⠿⠿⠿⠿⠿</block>
+		</block>
+	</sequence>
+	<sequence master="body">
+		<block>⠉⠉⠉⠉⠉</block>
+		<block margin-bottom="1">
+			<block vertical-align="before" vertical-position="8" margin-bottom="1">
+				<block>⠿⠿⠿⠿⠿<br/>⠿⠿⠿⠿⠿<br/>⠿⠿⠿⠿⠿</block>
+			</block>
+		</block>
+	</sequence>
+	<sequence master="body">
+		<block>⠉⠉⠉⠉⠉</block>
+		<block>
+			<block vertical-align="before" vertical-position="8" margin-bottom="1">
+				<block>⠿⠿⠿⠿⠿<br/>⠿⠿⠿⠿⠿<br/>⠿⠿⠿⠿⠿</block>
+			</block>
+			<block>⠉⠉⠉⠉⠉</block>
+		</block>
+	</sequence>
+	<sequence master="body">
+		<block>⠉⠉⠉⠉⠉</block>
+		<block margin-bottom="1">
+			<block vertical-align="before" vertical-position="8" margin-bottom="1">
+				<block>⠿⠿⠿⠿⠿<br/>⠿⠿⠿⠿⠿<br/>⠿⠿⠿⠿⠿</block>
+			</block>
+			<block>⠉⠉⠉⠉⠉</block>
+		</block>
+	</sequence>
+</obfl>

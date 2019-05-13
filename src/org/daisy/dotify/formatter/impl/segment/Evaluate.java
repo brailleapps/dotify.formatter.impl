@@ -23,6 +23,7 @@ public class Evaluate implements Segment {
 	/**
 	 * @param expression the expression
 	 * @param props the text properties
+	 * @param markCapitalLetters true if capital letters should be marked
 	 */
 	public Evaluate(DynamicContent expression, TextProperties props, boolean markCapitalLetters) {
 		this(expression, props, markCapitalLetters, null);

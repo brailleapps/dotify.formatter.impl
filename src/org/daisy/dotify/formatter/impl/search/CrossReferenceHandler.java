@@ -229,7 +229,9 @@ public class CrossReferenceHandler {
 	}
 	
 	public boolean getBreakable(SheetIdentity ident) {
-		return breakable.get(ident, true);
+		boolean isBreakable = breakable.get(ident, true);
+		breakable.keep(ident, isBreakable);
+		return isBreakable;
 	}
 	
 	public TransitionProperties getTransitionProperties(PageId id) {

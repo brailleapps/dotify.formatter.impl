@@ -32,6 +32,8 @@ class EvenSizeVolumeSplitter implements VolumeSplitter {
 	// number of volumes to add on top of the number of volumes strictly needed to accommodate the
 	// total number of sheets
 	int volumeOffset = 0;
+	int initialSheets; // initial number of sheets; assuming that this is the number of sheets
+	                   // required to fit everything into one volume, without the overhead
 	
 	/*
 	 * This map keeps track of which split suggestions resulted in a successful split. We
@@ -55,6 +57,7 @@ class EvenSizeVolumeSplitter implements VolumeSplitter {
 	public void updateSheetCount(int sheets, int remainingSheets) {
 		if (sdc == null) {
 			sdc = new EvenSizeVolumeSplitterCalculator(sheets, splitterMax, volumeOffset);
+			initialSheets = sheets;
 		} else {
 			boolean sheetsFitInVolumes = remainingSheets == 0;
 			EvenSizeVolumeSplitterCalculator prvSdc = sdc;
@@ -75,12 +78,22 @@ class EvenSizeVolumeSplitter implements VolumeSplitter {
 					inc *= .75;
 					volumeInc = (int)Math.floor(inc);
 				}
+				
+				// estimate of extra overhead per added volume
+				double overheadPerVolumeEstimate = (sheets - initialSheets) * 1.0 / prvSdc.getVolumeCount();
+				int extraOverheadSheets = (int)Math.floor(
+					overheadPerVolumeEstimate * (volumeInc + esc.getVolumeCount() - prvSdc.getVolumeCount()));
+				sheets += extraOverheadSheets;
+				
 				if (volumeInc > 0) {
 					volumeOffset += volumeInc;
 					sdc = new EvenSizeVolumeSplitterCalculator(sheets, splitterMax, volumeOffset);
 				} else {
 					
 					// Try with adjusted number of sheets
+					if (extraOverheadSheets > 0) {
+						esc = new EvenSizeVolumeSplitterCalculator(sheets, splitterMax, volumeOffset);
+					}
 					if (!previouslyTried.containsKey(esc) || previouslyTried.get(esc)) {
 						sdc = esc;
 					} else {

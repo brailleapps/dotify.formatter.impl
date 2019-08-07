@@ -272,10 +272,10 @@ public class SheetDataSource implements SplitPointDataSource<Sheet, SheetDataSou
 						transition = context.getTransitionBuilder().getResumeTransition();
 					}
 				}
-				boolean hyphenateLastLine = 
-						!(	!context.getConfiguration().allowsEndingVolumeOnHyphen() 
-								&& sheetBuffer.size()==index-1 
-								&& (!sectionProperties.duplex() || pageIndex % 2 == 1));
+				boolean hyphenateLastLine =
+					context.getConfiguration().allowsEndingVolumeOnHyphen()
+					|| sheetBuffer.size() != index-1
+					|| (sectionProperties.duplex() && pageIndex % 2 == 0);
 				
 				PageImpl p = psb.nextPage(initialPageOffset, hyphenateLastLine, Optional.ofNullable(transition), wasSplitInsideSequence, isFirst);
 				pageCounter.increasePageCount();

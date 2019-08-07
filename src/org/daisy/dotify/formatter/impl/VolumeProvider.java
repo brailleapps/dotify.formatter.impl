@@ -234,7 +234,7 @@ public class VolumeProvider {
 					break;
 				}
 			}
-			List<Sheet> ret = prepareToPaginate(ib, c, null).getRemaining();
+			List<Sheet> ret = prepareToPaginatePrePostVolumeContent(ib, c).getRemaining();
 			SectionBuilder sb = new SectionBuilder();
 			for (Sheet ps : ret) {
 				for (PageImpl p : ps.getPages()) {
@@ -250,8 +250,8 @@ public class VolumeProvider {
 		}
 	}
 	
-	private SheetDataSource prepareToPaginate(List<BlockSequence> fs, DefaultContext rcontext, Integer volumeGroup) throws PaginatorException {
-		return prepareToPaginate(new PageCounter(), rcontext, volumeGroup, fs);
+	private SheetDataSource prepareToPaginatePrePostVolumeContent(List<BlockSequence> fs, DefaultContext rcontext) throws PaginatorException {
+		return prepareToPaginate(new PageCounter(), rcontext, null, fs);
 	}
 	
 	private Iterable<SheetDataSource> prepareToPaginateWithVolumeGroups(List<BlockSequence> fs, DefaultContext rcontext) {

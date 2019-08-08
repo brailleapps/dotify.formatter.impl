@@ -82,7 +82,6 @@ public class VolumeProvider {
 	 * @param blocks the block sequences
 	 * @param volumeTemplates volume templates
 	 * @param context the formatter context
-	 * @param crh the cross reference handler
 	 */
 	VolumeProvider(List<BlockSequence> blocks, Stack<VolumeTemplate> volumeTemplates, LazyFormatterContext context) {
 		this.blocks = blocks;

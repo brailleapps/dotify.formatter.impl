@@ -55,7 +55,6 @@ class FormatterImpl implements Formatter {
 	 * Creates a new formatter.
 	 * @param translatorFactory a braille translator factory maker service
 	 * @param tbf a text border factory maker service
-	 * @param mpf a marker processor factory maker service
 	 * @param locale a locale
 	 * @param mode a braille mode
 	 */
@@ -67,7 +66,6 @@ class FormatterImpl implements Formatter {
 	 * Creates a new formatter.
 	 * @param translatorFactory a braille translator factory maker service
 	 * @param tbf a text border factory maker service
-	 * @param mpf a marker processor factory maker service
 	 * @param config the configuration
 	 */
 	FormatterImpl(BrailleTranslatorFactoryMakerService translatorFactory, TextBorderFactoryMakerService tbf, FormatterConfiguration config) {

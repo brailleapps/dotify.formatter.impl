@@ -245,13 +245,15 @@ public class PageSequenceBuilder2 {
 				List<RowGroup> seqTransitionText = transitionContent.isPresent()
 						?new RowGroupDataSource(master, bc, transitionContent.get().getInSequence(), BreakBefore.AUTO, null, cd).getRemaining()
 						:Collections.emptyList();
-				List<RowGroup> anyTransitionText = transitionContent.isPresent()
-						?new RowGroupDataSource(master, bc, transitionContent.get().getInAny(), BreakBefore.AUTO, null, cd).getRemaining()
-						:Collections.emptyList();
-				float anyHeight = (transitionContent.isPresent()
-				                   && !(transitionContent.get().getType()==TransitionContent.Type.RESUME && isFirst))
-					? height(anyTransitionText, true)
-					: 0;
+				List<RowGroup> anyTransitionText; {
+					if (transitionContent.isPresent()
+					    && !(transitionContent.get().getType() == TransitionContent.Type.RESUME && isFirst))
+						anyTransitionText = new RowGroupDataSource(
+							master, bc, transitionContent.get().getInAny(), BreakBefore.AUTO, null, cd).getRemaining();
+					else
+						anyTransitionText = Collections.emptyList();
+				}
+				float anyHeight = height(anyTransitionText, true);
 				SplitPointSpecification spec;
 				boolean addTransition = true;
 				if (transitionContent.isPresent() && transitionContent.get().getType()==Type.INTERRUPT) {
@@ -336,13 +338,16 @@ public class PageSequenceBuilder2 {
 				}
 				//TODO: combine this if statement with the one above
 				if (!anyTransitionText.isEmpty()) {
-					if (transitionContent.get().getType()==TransitionContent.Type.INTERRUPT) {
+					switch (transitionContent.get().getType()) {
+					case INTERRUPT:
 						head.addAll(anyTransitionText);
-					 } else if (transitionContent.get().getType()==TransitionContent.Type.RESUME  && !isFirst) {
-						 // Adding to the top of the list isn't very efficient.
-						 // When combined with the if statement above, this isn't necessary.
-						 head.addAll(0, anyTransitionText); 
-					 }
+						break;
+					case RESUME:
+						// Adding to the top of the list isn't very efficient.
+						// When combined with the if statement above, this isn't necessary.
+						head.addAll(0, anyTransitionText);
+						break;
+					}
 				}
 				//TODO: Get last row
 				if (!head.isEmpty()) {

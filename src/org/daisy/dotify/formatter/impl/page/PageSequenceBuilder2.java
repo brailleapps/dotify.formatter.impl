@@ -247,11 +247,12 @@ public class PageSequenceBuilder2 {
 						:Collections.emptyList();
 				List<RowGroup> anyTransitionText; {
 					if (transitionContent.isPresent()
-					    && !(transitionContent.get().getType() == TransitionContent.Type.RESUME && isFirst))
+					    && !(transitionContent.get().getType() == TransitionContent.Type.RESUME && isFirst)) {
 						anyTransitionText = new RowGroupDataSource(
 							master, bc, transitionContent.get().getInAny(), BreakBefore.AUTO, null, cd).getRemaining();
-					else
+					} else {
 						anyTransitionText = Collections.emptyList();
+					}
 				}
 				float anyHeight = height(anyTransitionText, true);
 				SplitPointSpecification spec;

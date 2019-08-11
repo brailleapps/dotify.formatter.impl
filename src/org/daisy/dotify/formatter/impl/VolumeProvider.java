@@ -126,7 +126,7 @@ public class VolumeProvider {
 		VolumeImpl volume = new VolumeImpl(crh.getOverhead(currentVolumeNumber));
 		ArrayList<AnchorData> ad = new ArrayList<>();
 		volume.setPreVolData(updateVolumeContents(currentVolumeNumber, ad, true));
-		volume.setBody(nextBodyContents(volume.getOverhead().total(), ad));
+		volume.setBody(nextBodyContents(currentVolumeNumber, volume.getOverhead().total(), ad));
 		
 		if (logger.isLoggable(Level.FINE)) {
 			logger.fine("Sheets  in volume " + currentVolumeNumber + ": " + (volume.getVolumeSize()) + 
@@ -148,9 +148,9 @@ public class VolumeProvider {
 	 * @param ad the anchor data
 	 * @return returns the contents of the next volume
 	 */
-	private SectionBuilder nextBodyContents(final int overhead, ArrayList<AnchorData> ad) {
+	private SectionBuilder nextBodyContents(int volumeNumber, final int overhead, ArrayList<AnchorData> ad) {
 		groups.currentGroup().setOverheadCount(groups.currentGroup().getOverheadCount() + overhead);
-		final int splitterMax = splitterLimit.getSplitterLimit(currentVolumeNumber);
+		final int splitterMax = splitterLimit.getSplitterLimit(volumeNumber);
 		final int targetSheetsInVolume = (groups.lastInGroup()?splitterMax:groups.sheetsInCurrentVolume());
 		//Not using lambda for now, because it's noticeably slower.
 		SplitPointCost<Sheet> cost = new SplitPointCost<Sheet>(){
@@ -181,7 +181,7 @@ public class VolumeProvider {
 
 		crh.setReadOnly();
 		SheetDataSource data = groups.currentGroup().getUnits();
-		data.setCurrentVolumeNumber(currentVolumeNumber);
+		data.setCurrentVolumeNumber(volumeNumber);
 		SheetDataSource copySource = new SheetDataSource(data);
 		SplitPointSpecification spec = volSplitter.find(splitterMax-overhead, 
 				copySource, 
@@ -197,14 +197,14 @@ public class VolumeProvider {
 		List<Sheet> contents = sp.getHead();
 		int pageCount = Sheet.countPages(contents);
 		crh.commitPageDetails();
-		crh.setVolumeScope(currentVolumeNumber, pageIndex, pageIndex+pageCount);
+		crh.setVolumeScope(volumeNumber, pageIndex, pageIndex+pageCount);
 
 		pageIndex += pageCount;
 		SectionBuilder sb = new SectionBuilder();
 		for (Sheet sheet : contents) {
 			for (PageImpl p : sheet.getPages()) {
 				for (String id : p.getIdentifiers()) {
-					crh.setVolumeNumber(id, currentVolumeNumber);
+					crh.setVolumeNumber(id, volumeNumber);
 				}
 				if (p.getAnchors().size()>0) {
 					ad.add(new AnchorData(p.getAnchors(), p.getPageNumber()));
@@ -240,7 +240,7 @@ public class VolumeProvider {
 			for (Sheet ps : ret) {
 				for (PageImpl p : ps.getPages()) {
 					for (String id : p.getIdentifiers()) {
-						crh.setVolumeNumber(id, currentVolumeNumber);
+						crh.setVolumeNumber(id, volumeNumber);
 					}
 					if (p.getAnchors().size()>0) {
 						ad.add(new AnchorData(p.getAnchors(), p.getPageNumber()));

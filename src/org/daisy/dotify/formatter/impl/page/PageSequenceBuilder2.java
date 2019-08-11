@@ -181,11 +181,6 @@ public class PageSequenceBuilder2 {
 		for (String id : ret.getIdentifiers()) {
 			blockContext.getRefs().setPageNumber(id, ret.getPageNumber());
 		}
-		if (blockContext.getCurrentVolume()!=null) {
-			for (String id : ret.getIdentifiers()) {
-				blockContext.getRefs().setVolumeNumber(id, blockContext.getCurrentVolume());
-			}
-		}
 		toIndex++;
 		return ret;
 	}

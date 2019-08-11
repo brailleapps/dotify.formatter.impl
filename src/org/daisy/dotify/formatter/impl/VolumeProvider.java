@@ -239,6 +239,9 @@ public class VolumeProvider {
 			SectionBuilder sb = new SectionBuilder();
 			for (Sheet ps : ret) {
 				for (PageImpl p : ps.getPages()) {
+					for (String id : p.getIdentifiers()) {
+						crh.setVolumeNumber(id, currentVolumeNumber);
+					}
 					if (p.getAnchors().size()>0) {
 						ad.add(new AnchorData(p.getAnchors(), p.getPageNumber()));
 					}

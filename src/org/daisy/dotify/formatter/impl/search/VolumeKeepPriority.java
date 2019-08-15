@@ -120,8 +120,9 @@ public final class VolumeKeepPriority implements Comparable<VolumeKeepPriority> 
 	 * <p>Objects are ordered according to {@link #compareTo(VolumeKeepPriority)}, from lower to higher priority.</p>
 	 */
 	public static Comparator<VolumeKeepPriority> naturalOrder() {
-		if (comparator == null)
+		if (comparator == null) {
 			comparator = Comparator.<VolumeKeepPriority>naturalOrder();
+		}
 		return comparator;
 	}
 

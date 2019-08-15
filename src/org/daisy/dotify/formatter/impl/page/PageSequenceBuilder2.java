@@ -577,11 +577,10 @@ public class PageSequenceBuilder2 {
 			if (context.getTransitionBuilder().getProperties().getApplicationRange()==ApplicationRange.NONE) {
 				return list.get(list.size()-1).getAvoidVolumeBreakAfterPriority();
 			} else {
-				// We want the highest value (lowest priority) to maximize the chance that this page
-				// is used when finding the break point. An absent priority is "higher" than the
-				// lowest priority (9) is "higher" than the highest priority (1).
+				// We want the lowest priority to maximize the chance that this page is used when
+				// finding the break point.
 				return list.stream().map(v->v.getAvoidVolumeBreakAfterPriority())
-						.max(VolumeKeepPriority::compare)
+						.min(VolumeKeepPriority.naturalOrder())
 						.orElse(VolumeKeepPriority.empty());
 			}
 		} else {

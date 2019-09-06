@@ -268,14 +268,14 @@ public class PageSequenceBuilder2 {
 	private PageImpl nextPageInner(int pageNumberOffset, boolean hyphenateLastLine, Optional<TransitionContent> transitionContent, boolean wasSplitInSequence, boolean isFirst) throws PaginatorException, RestartPaginationException // pagination must be restarted in PageStructBuilder.paginateInner
 	{
 		PageImpl current = newPage(pageNumberOffset);
-		if (pcbl!=null) {
+		if (pcbl!=null
 			// Store a mapping from the BlockLineLocation of the last line of the page before the
 			// previous page to the BlockLineLocation of the last line of the previous page. This
 			// info is used (in the next iteration) in SheetDataSource to obtain info about the
 			// verso page of a sheet when we are on a recto page of that sheet.
-			if (transitionContent.isPresent() && transitionContent.get().getType()==TransitionContent.Type.INTERRUPT) {
-				blockContext.getRefs().setNextPageDetailsInSequence(pcbl, current.getDetails());
-			}
+			&& transitionContent.isPresent() && transitionContent.get().getType()==TransitionContent.Type.INTERRUPT) {
+
+			blockContext.getRefs().setNextPageDetailsInSequence(pcbl, current.getDetails());
 		}
 		if (nextEmpty) {
 			nextEmpty = false;

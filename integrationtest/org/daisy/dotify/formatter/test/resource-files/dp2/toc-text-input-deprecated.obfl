@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<obfl xmlns="http://www.daisy.org/ns/2011/obfl" version="2011-1" xml:lang="und" hyphenate="false">
+   <meta>
+      <dc:title xmlns:dc="http://purl.org/dc/elements/1.1/">toc-text-input-deprecated</dc:title>
+      <dc:description xmlns:dc="http://purl.org/dc/elements/1.1/">Tests toc-entry elements without a toc-text child element (deprecated, #106).</dc:description>
+   </meta>
+   <layout-master name="main" duplex="false" page-width="15" page-height="6">
+      <default-template>
+         <header>
+            <field>
+               <marker-reference marker="marker" direction="forward" scope="sequence"/>
+            </field>
+            <field>
+               <marker-reference marker="marker" direction="backward" scope="sequence"/>
+            </field>
+         </header>
+         <footer/>
+      </default-template>
+   </layout-master>
+   <table-of-contents name="toc">
+      <toc-entry ref-id="ch_1">
+         ⠿⠿⠿⠿ <evaluate expression="(- 1 1)"/>
+         <page-number ref-id="ch_1" number-format="default"/>
+         <marker class="marker" value="1"/>
+      </toc-entry>
+      <toc-entry ref-id="ch_2">
+         ⠿⠿<br/>⠿⠿ <leader position="7"/><page-number ref-id="ch_2" number-format="default"/>
+         <marker class="marker" value="2"/>
+         <toc-entry ref-id="ch_2_2">
+            ⠿⠿⠿⠿
+         </toc-entry>
+      </toc-entry>
+   </table-of-contents>
+   <volume-template sheets-in-volume-max="100">
+      <pre-content>
+         <toc-sequence toc="toc" master="main" range="volume"/>
+      </pre-content>
+   </volume-template>
+   <sequence master="main">
+      <block id="ch_1" translate="">⠿⠿ </block>
+      <block>⠤⠤⠤⠤⠤ ⠤⠤⠤⠤⠤ ⠤⠤⠤⠤⠤ ⠤⠤⠤⠤⠤
+         ⠤⠤⠤⠤⠤ ⠤⠤⠤⠤⠤ ⠤⠤⠤⠤⠤ ⠤⠤⠤⠤⠤
+      </block>
+      <block id="ch_2" translate="">⠿⠿ </block>
+      <block>⠤⠤⠤⠤⠤ ⠤⠤⠤⠤⠤ ⠤⠤⠤⠤⠤ ⠤⠤⠤⠤⠤
+         ⠤⠤⠤⠤⠤ ⠤⠤⠤⠤⠤ ⠤⠤⠤⠤⠤ ⠤⠤⠤⠤⠤
+         <block id="ch_2_2" translate="">⠿⠿⠿ </block>
+         <block>⠤⠤⠤⠤⠤ ⠤⠤⠤⠤⠤ ⠤⠤⠤⠤⠤ ⠤⠤⠤⠤⠤
+         </block>
+      </block>
+   </sequence>
+</obfl>

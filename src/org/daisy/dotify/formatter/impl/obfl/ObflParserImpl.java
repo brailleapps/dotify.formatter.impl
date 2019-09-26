@@ -1193,14 +1193,35 @@ public class ObflParserImpl extends XMLParserBase implements ObflParser {
 		while (input.hasNext()) {
 			event=input.nextEvent();
 			if (event.isCharacters()) {
+				// TODO: deprecated (#106) - remove in a future version
 				toc.addChars(event.asCharacters().getData(), tp);
+			} else if (equalsStart(event, ObflQName.TOC_TEXT)) {
+				parseTocText(event, input, toc, tp);
 			} else if (equalsStart(event, ObflQName.TOC_ENTRY)) {
 				parseTocEntry(event, input, toc, tp);
 			} else if (processAsBlockContents(toc, event, input, tp)) {
+				// TODO: deprecated (#106) - remove this if clause in a future version
 				//done!
 			}
 			else if (equalsEnd(event, ObflQName.TOC_ENTRY)) {
 				toc.endEntry();
+				break;
+			} else {
+				report(event);
+			}
+		}
+	}
+	
+	private void parseTocText(XMLEvent event, XMLEventIterator input, TableOfContents toc, TextProperties tp) throws XMLStreamException {
+		tp = getTextProperties(event, tp);
+		while (input.hasNext()) {
+			event=input.nextEvent();
+			if (event.isCharacters()) {
+				toc.addChars(event.asCharacters().getData(), tp);
+			} else if (processAsBlockContents(toc, event, input, tp)) {
+				//done!
+			}
+			else if (equalsEnd(event, ObflQName.TOC_TEXT)) {
 				break;
 			} else {
 				report(event);

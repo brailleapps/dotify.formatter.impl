@@ -25,6 +25,8 @@ interface ObflQName {
 	 static final QName SPAN = new QName(OBFL_NS, "span");
 	static final QName STYLE = new QName(OBFL_NS, "style");
 	 static final QName TOC_ENTRY = new QName(OBFL_NS, "toc-entry");
+	static final QName TOC_TEXT = new QName(OBFL_NS, "toc-text");
+	static final QName TOC_TEXT_RESUMED = new QName(OBFL_NS, "toc-text");
 	 static final QName LEADER = new QName(OBFL_NS, "leader");
 	 static final QName MARKER = new QName(OBFL_NS, "marker");
 	 static final QName ANCHOR = new QName(OBFL_NS, "anchor");
@@ -97,6 +99,7 @@ interface ObflQName {
 	 static final QName ATTR_COST = new QName("cost");
 	 static final QName ATTR_URI = new QName("uri");
 	 static final QName ATTR_VALUE = new QName("value");
+	static final QName ATTR_USE_TOC_TEXT_RESUMED = new QName("use-toc-text-resumed");
 	 
 	static final QName TABLE = new QName(OBFL_NS, "table");
 	static final QName THEAD = new QName(OBFL_NS, "thead");

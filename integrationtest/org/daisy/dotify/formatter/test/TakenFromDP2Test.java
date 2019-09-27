@@ -336,11 +336,11 @@ public class TakenFromDP2Test extends AbstractFormatterEngineTest {
 	@Test
 	public void testTocTextDeprecated() throws LayoutEngineException, IOException, PagedMediaWriterConfigurationException {
 		testPEF("resource-files/dp2/toc-text-input-deprecated.obfl",
-		        "resource-files/dp2/toc-text-expected.pef", true);
+		        "resource-files/dp2/toc-text-expected.pef", false);
 	}
 	@Test
 	public void testTocText() throws LayoutEngineException, IOException, PagedMediaWriterConfigurationException {
 		testPEF("resource-files/dp2/toc-text-input.obfl",
-		        "resource-files/dp2/toc-text-expected.pef", true);
+		        "resource-files/dp2/toc-text-expected.pef", false);
 	}
 }

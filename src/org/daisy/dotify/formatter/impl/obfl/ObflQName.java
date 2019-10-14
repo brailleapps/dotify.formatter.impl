@@ -99,7 +99,6 @@ interface ObflQName {
 	 static final QName ATTR_COST = new QName("cost");
 	 static final QName ATTR_URI = new QName("uri");
 	 static final QName ATTR_VALUE = new QName("value");
-	static final QName ATTR_USE_TOC_TEXT_RESUMED = new QName("use-toc-text-resumed");
 	 
 	static final QName TABLE = new QName(OBFL_NS, "table");
 	static final QName THEAD = new QName(OBFL_NS, "thead");

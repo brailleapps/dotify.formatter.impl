@@ -3,7 +3,7 @@
    <head>
       <meta>
          <dc:title xmlns:dc="http://purl.org/dc/elements/1.1/">toc-text</dc:title>
-         <dc:description xmlns:dc="http://purl.org/dc/elements/1.1/">Tests toc-text.</dc:description>
+         <dc:description xmlns:dc="http://purl.org/dc/elements/1.1/">Tests toc-text with mixed content.</dc:description>
          <dc:format xmlns:dc="http://purl.org/dc/elements/1.1/">application/x-pef+xml</dc:format>
       </meta>
    </head>

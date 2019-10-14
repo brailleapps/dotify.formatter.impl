@@ -1193,13 +1193,12 @@ public class ObflParserImpl extends XMLParserBase implements ObflParser {
 		while (input.hasNext()) {
 			event=input.nextEvent();
 			if (event.isCharacters()) {
-				// TODO: deprecated (#106) - remove in a future version
-				toc.addChars(event.asCharacters().getData(), tp);
+				tocEntryAddChars(toc, event, tp);
 			} else if (equalsStart(event, ObflQName.TOC_TEXT)) {
 				parseTocText(event, input, toc, tp);
 			} else if (equalsStart(event, ObflQName.TOC_ENTRY)) {
 				parseTocEntry(event, input, toc, tp);
-			} else if (processAsBlockContents(toc, event, input, tp)) {
+			} else if (tocEntryProcessAsBlockContents(toc, event, input, tp)) {
 				// TODO: deprecated (#106) - remove this if clause in a future version
 				//done!
 			}
@@ -1212,6 +1211,24 @@ public class ObflParserImpl extends XMLParserBase implements ObflParser {
 		}
 	}
 	
+	/**
+	 * Adds characters from a toc-entry to the toc
+	 * @deprecated the characters should be placed inside the toc-text element, see #106
+	 */
+	@Deprecated
+	private void tocEntryAddChars(TableOfContents toc, XMLEvent event, TextProperties tp) {
+		toc.addChars(event.asCharacters().getData(), tp);
+	}
+
+	/**
+	 * Adds block contents from a toc-entry to the toc
+	 * @deprecated the block contents should be placed inside the toc-text element, see #106
+	 */
+	@Deprecated
+	private boolean tocEntryProcessAsBlockContents(TableOfContents toc, XMLEvent event, XMLEventIterator input, TextProperties tp) throws XMLStreamException {
+		return processAsBlockContents(toc, event, input, tp);
+	}
+
 	private void parseTocText(XMLEvent event, XMLEventIterator input, TableOfContents toc, TextProperties tp) throws XMLStreamException {
 		tp = getTextProperties(event, tp);
 		while (input.hasNext()) {

@@ -1199,7 +1199,6 @@ public class ObflParserImpl extends XMLParserBase implements ObflParser {
 			} else if (equalsStart(event, ObflQName.TOC_ENTRY)) {
 				parseTocEntry(event, input, toc, tp);
 			} else if (tocEntryProcessAsBlockContents(toc, event, input, tp)) {
-				// TODO: deprecated (#106) - remove this if clause in a future version
 				//done!
 			}
 			else if (equalsEnd(event, ObflQName.TOC_ENTRY)) {

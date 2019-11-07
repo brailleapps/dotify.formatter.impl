@@ -227,6 +227,10 @@ publishing {
 						id = 'kalaspuffar'
 						name = 'Daniel Persson'
 					}
+					developer {
+						id = 'paulrambags'
+						name = 'Paul Rambags'
+					}
 				}
 			}
 		}

@@ -328,12 +328,14 @@ public class OBFLWsNormalizer extends XMLParserBase implements XMLEventIterator 
 	}
 	
 	private boolean beginsMixedContent(XMLEvent event) {
-		return equalsStart(event, ObflQName.BLOCK, ObflQName.TOC_ENTRY, ObflQName.ITEM, ObflQName.BEFORE, ObflQName.AFTER, ObflQName.TD);
+		// TODO: ObflQName.TOC_ENTRY is deprecated (#106) - remove in a future version
+		return equalsStart(event, ObflQName.BLOCK, ObflQName.TOC_ENTRY, ObflQName.TOC_TEXT, ObflQName.TOC_TEXT_RESUMED, ObflQName.ITEM, ObflQName.BEFORE, ObflQName.AFTER, ObflQName.TD);
 			   
 	}
 	
 	private boolean endsMixedContent(XMLEvent event) {
-		return equalsEnd(event, ObflQName.BLOCK, ObflQName.TOC_ENTRY, ObflQName.ITEM, ObflQName.BEFORE, ObflQName.AFTER, ObflQName.TD);
+		// TODO: ObflQName.TOC_ENTRY is deprecated (#106) - remove in a future version
+		return equalsEnd(event, ObflQName.BLOCK, ObflQName.TOC_ENTRY, ObflQName.TOC_TEXT, ObflQName.TOC_TEXT_RESUMED, ObflQName.ITEM, ObflQName.BEFORE, ObflQName.AFTER, ObflQName.TD);
 	}
 
 	/**
